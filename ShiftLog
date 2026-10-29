@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ShiftLog - Gestione Turni & Rateo Ferie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #cbd5e1;
+            --danger: #ef4444;
+            --warning: #d97706;
+            --info: #3b82f6;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding-bottom: 80px;
+        }
+
+        .card-custom {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .tab-btn.active {
+            color: #10b981;
+            border-top: 3px solid #10b981;
+        }
+
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .rateo-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; min-width: 600px; }
+        .rateo-table th, .rateo-table td { border: 1px solid var(--border); padding: 8px 6px; }
+        .rateo-table th { background-color: #f1f5f9; font-weight: 700; color: var(--text-main); font-size: 0.75rem; text-transform: uppercase; }
+        .rateo-table td.month-name { text-align: left; font-weight: 600; padding-left: 10px; text-transform: capitalize; background-color: #fafafa; }
+        .rateo-val { font-weight: 700; background-color: #f8fafc; color: var(--text-main); }
+
+        .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-top: 15px; }
+        .summary-table { width: 100%; min-width: unset; }
+        .summary-table td { text-align: left; padding: 8px 12px; font-size: 0.85rem; border: none; }
+        .summary-table td:last-child { text-align: right; font-weight: 700; width: 140px; }
+        
+        .highlight-mid-green { color: var(--primary-dark); font-size: 1.05rem !important; font-weight: 700 !important; }
+        .highlight-mid-warning { color: var(--warning); font-size: 1.05rem !important; font-weight: 700 !important; }
+        .highlight-red { color: var(--danger); font-weight: 700; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; padding-bottom: 0; }
+            .card-custom { box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-3xl mx-auto p-3 sm:p-5">
+
+        <!-- HEADER APP -->
+        <header class="card-custom mb-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white font-extrabold text-sm flex items-center justify-center tracking-tight shadow-md">SL</div>
+                <h1 class="font-bold text-xl tracking-wider text-slate-800">SHIFTLOG</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="cambiaAnno(-1)" class="px-3 py-1.5 border rounded-lg hover:bg-slate-100 text-slate-600 font-bold">◀</button>
+                <select id="selAnnoHeader" onchange="selezionaAnnoCorrente()" class="font-bold text-lg border rounded-lg px-2 py-1 bg-white text-center">
+                </select>
+                <button onclick="cambiaAnno(1)" class="px-3 py-1.5 border rounded-lg hover:bg-slate-100 text-slate-600 font-bold">▶</button>
+            </div>
+        </header>
+
+        <!-- BANNER BACKUP E RIPRISTINO -->
+        <div id="bannerBackup" class="card-custom mb-4 bg-sky-50 border-sky-200 no-print">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-sky-800 text-sm">
+                    <i class="fa-solid fa-floppy-disk text-sky-600"></i>
+                    <span><strong>Backup:</strong> Salva o ripristina i tuoi dati in un file.</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="esportaDatiJSON()" class="px-3 py-1.5 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700">📥 Salva</button>
+                    <button onclick="document.getElementById('fileImport').click()" class="px-3 py-1.5 bg-white border border-sky-300 text-sky-800 rounded-lg text-xs font-semibold hover:bg-sky-100">📤 Carica</button>
+                    <button onclick="document.getElementById('bannerBackup').style.display='none'" class="px-3 py-1.5 border border-sky-300 text-sky-800 rounded-lg text-xs font-semibold hover:bg-sky-100">&times;</button>
+                </div>
+                <input type="file" id="fileImport" accept=".json" style="display: none;" onchange="importaDatiJSON(event)">
+            </div>
+        </div>
+
+        <!-- ================= VISTA CALENDARIO ================= -->
+        <div id="viewCalendario">
+            <!-- INTESTAZIONE MESE -->
+            <div class="card-custom mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <button onclick="cambiaMeseCalendario(-1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">◀</button>
+                    <h2 id="txtMeseAnnoCal" class="text-xl font-bold text-slate-800 capitalize">Ottobre 2026</h2>
+                    <button onclick="cambiaMeseCalendario(1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">▶</button>
+                </div>
+
+                <!-- TURNI TOTALI MESE -->
+                <div class="text-center bg-slate-50 py-2 rounded-xl text-sm font-semibold text-slate-600">
+                    Turni Totali Mese: <span id="statCalTurni" class="text-emerald-600 font-bold text-base">0</span>
+                </div>
+            </div>
+
+            <!-- SELEZIONE RAPIDA INTELLIGENTE (TENDINE INDIPENDENTI) -->
+            <div class="card-custom mb-4 no-print">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Assegnazione Rapida Giorno</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Seleziona Nave (Turno Ordinario):</label>
+                        <div class="flex gap-2">
+                            <select id="selNaveRapida" onchange="gestisciSelezioneNaveRapida()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                                <option value="">-- Seleziona Nave --</option>
+                            </select>
+                            <button onclick="apriGestioneNavi()" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-700 text-sm font-bold" title="Gestisci Navi">+</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Oppure Seleziona Evento / Assenza:</label>
+                        <select id="selTipoGiornoRapido" onchange="gestisciSelezioneEventoRapido()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                            <option value="">-- Seleziona Evento --</option>
+                            <option value="FERIE">Ferie (Giornata Intera)</option>
+                            <option value="MA">Malattia (Giornata Intera)</option>
+                            <option value="INF">Infortunio (Giornata Intera)</option>
+                            <option value="FS">Festività Soppressa (Giornata Intera)</option>
+                            <option value="PNR">Permesso Non Retribuito (Indicativo)</option>
+                            <option value="RIPOSO">Riposo Settimanale (Indicativo)</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="boxOrarioRapido" class="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Inizio:</label>
+                        <input type="time" id="oraInizioRapida" value="08:00" class="w-full border rounded-lg p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Fine:</label>
+                        <input type="time" id="oraFineRapida" value="16:00" class="w-full border rounded-lg p-2 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRIGLIA CALENDARIO -->
+            <div class="card-custom">
+                <div class="grid grid-cols-7 text-center font-bold text-xs text-slate-400 mb-2">
+                    <div>LUN</div><div>MAR</div><div>MER</div><div>GIO</div><div>VEN</div><div>SAB</div><div>DOM</div>
+                </div>
+                <div id="gridCalendario" class="grid grid-cols-7 gap-1 sm:gap-2"></div>
+            </div>
+        </div>
+
+        <!-- ================= VISTA RATEO & FERIE ================= -->
+        <div id="viewRateo" class="hidden">
+            <!-- CONFIGURAZIONE INIZIALE -->
+            <div class="card-custom mb-4 no-print border-l-4 border-l-emerald-500">
+                <h2 class="font-bold text-slate-800 mb-3 text-sm sm:text-base">⚙️ Configurazione Iniziale (<span id="txtAnnoConfig">Anno</span>)</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Ferie Residue Iniziali:</label>
+                        <input type="number" id="inpFerieIniziali" placeholder="es. 10" step="0.5" value="0" oninput="salvaECalcola()" class="w-full border rounded-lg p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">FS Totali Caricate dall'Azienda:</label>
+                        <input type="number" id="inpFSMaturateTot" placeholder="es. 1, 2..." step="0.5" value="0" oninput="salvaECalcola()" class="w-full border rounded-lg p-2 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABELLA RIEPILOGO MESI -->
+            <div class="card-custom mb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">📋 Riepilogo Mese per Mese (<span id="txtAnnoTabella">Anno</span>)</h2>
+                    <button onclick="esportaPDF()" class="no-print px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">📄 Esporta PDF</button>
+                </div>
+
+                <div class="text-xs text-slate-500 mb-3 no-print bg-slate-50 p-2.5 rounded-lg border">
+                    Totale Turni = Turni Effettivi + Malattia + Infortunio + Fest. Soppresse (Usate) + Ferie Usate.<br>
+                    Soglia: 16+ turni totali = 2,166 gg | Sotto i 16 turni = 0,086 gg per turno.<br>
+                    <em>* Riposo e PNR (Permesso Non Retribuito) sono solo dati indicativi e non maturano rateo.</em>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="rateo-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 14%;">MESE</th>
+                                <th>TOTALE TURNI</th>
+                                <th>TURNI EFFETTIVI</th>
+                                <th>FERIE USATE</th>
+                                <th>MA</th>
+                                <th>INF</th>
+                                <th>FEST SOPP (USATE)</th>
+                                <th>PNR / RIPOSO</th>
+                                <th style="width: 16%;">RATEO MATURATO</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CARD RECAP TOTALI -->
+            <div class="summary-container">
+                <div class="card-custom">
+                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">📊 Totali Ferie</h2>
+                    <table class="summary-table">
+                        <tr><td><strong>Turni Totali Anno</strong></td><td id="totTurniAnni">0</td></tr>
+                        <tr><td>Ferie residue iniziali</td><td id="dispResidueIniziali">0 gg</td></tr>
+                        <tr><td>Ferie utilizzate</td><td id="totFerieUtilizzate" class="highlight-red">0 gg</td></tr>
+                        <tr><td><strong>Ferie disponibili tot</strong></td><td id="ferieDisponibiliTot" class="highlight-mid-green">0 gg</td></tr>
+                    </table>
+                </div>
+
+                <div class="card-custom">
+                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">🗓️ Festività Soppresse (FS)</h2>
+                    <table class="summary-table">
+                        <tr><td>FS Caricate (Azienda)</td><td id="totFSMaturateAnno">0 gg</td></tr>
+                        <tr><td>FS Utilizzate (Anno)</td><td id="totFSUtilizzate" class="highlight-red">0 gg</td></tr>
+                        <tr><td><strong>FS Disponibili Totali</strong></td><td id="fsDisponibiliTot" class="highlight-mid-green">0 gg</td></tr>
+                    </table>
+                </div>
+
+                <div class="card-custom">
+                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">🎯 Proiezione Rateo Ferie</h2>
+                    <table class="summary-table">
+                        <tr><td>Ferie Maturate (Reali / Visive)</td><td id="totFerieMaturate">0,000</td></tr>
+                        <tr><td>Rateo mancante allo scatto</td><td id="rateoMancante">0,000</td></tr>
+                        <tr><td><strong>Turni mancanti</strong></td><td id="turniMancanti" class="highlight-mid-warning">0</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- RESET ANNO CORRENTE -->
+            <div class="card-custom mt-4 no-print flex justify-between items-center">
+                <span class="text-xs text-slate-500 font-medium">Gestione Anno Corrente</span>
+                <button onclick="resetDatiCorrenti()" class="px-3 py-2 border border-rose-300 text-rose-600 rounded-lg text-xs font-semibold hover:bg-rose-50">🗑️ Reset Anno Corrente</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- NAVBAR IN BASSO -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around py-2 z-40 no-print shadow-lg">
+        <button onclick="switchTab('calendario')" id="navCal" class="tab-btn active flex-1 flex flex-col items-center py-1 text-slate-500 font-medium text-xs">
+            <i class="fa-solid fa-calendar-days text-lg mb-0.5"></i>
+            <span>Calendario</span>
+        </button>
+        <button onclick="switchTab('rateo')" id="navRateo" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 font-medium text-xs">
+            <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
+            <span>Rateo & Ferie</span>
+        </button>
+    </nav>
+
+    <!-- MODALE GIORNO SELEZIONATO -->
+    <div id="modalGiorno" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="modalGiornoData" class="font-bold text-slate-800 text-lg">Dettaglio Giorno</h3>
+                <button onclick="chiudiModaleGiorno()" class="text-slate-400 text-xl hover:text-slate-600">&times;</button>
+            </div>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo di Evento / Assenza:</label>
+                    <select id="modTipoGiorno" onchange="toggleModaleFields()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                        <option value="TURNO">Turno Ordinario (Usa Nave)</option>
+                        <option value="FERIE">Ferie (Giornata Intera)</option>
+                        <option value="MA">Malattia (Giornata Intera)</option>
+                        <option value="INF">Infortunio (Giornata Intera)</option>
+                        <option value="FS">Festività Soppressa (Giornata Intera)</option>
+                        <option value="PNR">Permesso Non Retribuito (Indicativo)</option>
+                        <option value="RIPOSO">Riposo Settimanale (Indicativo)</option>
+                    </select>
+                </div>
+
+                <div id="modBoxTurno" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nave Assegnata:</label>
+                        <select id="modNave" class="w-full border rounded-lg p-2 text-sm bg-white font-medium"></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Inizio:</label>
+                            <input type="time" id="modOraInizio" class="w-full border rounded-lg p-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Fine:</label>
+                            <input type="time" id="modOraFine" class="w-full border rounded-lg p-2 text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Note / Dettagli:</label>
+                    <input type="text" id="modNote" placeholder="es. Straordinari" class="w-full border rounded-lg p-2 text-sm">
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="salvaGiornoModale()" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700">Salva</button>
+                <button onclick="eliminaGiornoModale()" class="px-4 border border-rose-300 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-50">Rimuovi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE GESTIONE NAVI -->
+    <div id="modalNavi" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-slate-800 text-lg">Gestione Navi</h3>
+                <button onclick="chiudiGestioneNavi()" class="text-slate-400 text-xl hover:text-slate-600">&times;</button>
+            </div>
+            
+            <div class="flex gap-2">
+                <input type="text" id="nuovaNaveNome" placeholder="Nome Nave (es. Nave A)" class="flex-1 border rounded-lg p-2 text-sm">
+                <button onclick="aggiungiNave()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700">+</button>
+            </div>
+
+            <div id="listaNavi" class="space-y-2 max-h-48 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        const mesiNomi = [
+            "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+            "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"
+        ];
+
+        let databaseAnni = {};
+        let listaNavi = ["Nave Alpha", "Nave Beta", "Nave Gamma"];
+        let annoSelezionato = new Date().getFullYear();
+        let meseCalendario = new Date().getMonth();
+        let giornoSelezionatoDataKey = null;
+
+        function getStrutturaAnnoVuota() {
+            return {
+                ferieIniziali: 0,
+                fsMaturateTot: 0,
+                datiMesi: mesiNomi.map(m => ({
+                    mese: m, turniEffettivi: 0, ma: 0, inf: 0, festSopp: 0, ferieUsate: 0, pnr: 0, riposo: 0
+                })),
+                dettagliGiorni: {}
+            };
+        }
+
+        function salvaInLocalStorage() {
+            const dataToSave = {
+                annoCorrente: annoSelezionato,
+                databaseAnni: databaseAnni,
+                listaNavi: listaNavi
+            };
+            localStorage.setItem('shiftLogData', JSON.stringify(dataToSave));
+        }
+
+        function caricaDaLocalStorage() {
+            const savedData = localStorage.getItem('shiftLogData');
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    if (parsed.databaseAnni) databaseAnni = parsed.databaseAnni;
+                    if (parsed.annoCorrente) annoSelezionato = parseInt(parsed.annoCorrente);
+                    if (parsed.listaNavi) listaNavi = parsed.listaNavi;
+                } catch (e) {
+                    console.error("Errore nel caricamento dei dati", e);
+                }
+            }
+
+            if (!databaseAnni[annoSelezionato]) {
+                databaseAnni[annoSelezionato] = getStrutturaAnnoVuota();
+                const annoPrec = annoSelezionato - 1;
+                if (databaseAnni[annoPrec]) {
+                    databaseAnni[annoSelezionato].ferieIniziali = calcolaFerieFinaliAnno(annoPrec);
+                }
+            }
+
+            popolaSelectNavi();
+            aggiornaSelectAnni();
+        }
+
+        function popolaSelectNavi() {
+            const selRapida = document.getElementById('selNaveRapida');
+            const selMod = document.getElementById('modNave');
+            selRapida.innerHTML = '<option value="">-- Seleziona Nave --</option>';
+            selMod.innerHTML = '';
+
+            listaNavi.forEach(n => {
+                selRapida.innerHTML += `<option value="${n}">${n}</option>`;
+                selMod.innerHTML += `<option value="${n}">${n}</option>`;
+            });
+
+            const listContainer = document.getElementById('listaNavi');
+            listContainer.innerHTML = '';
+            listaNavi.forEach((n, idx) => {
+                listContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border text-sm">
+                        <span>${n}</span>
+                        <button onclick="rimuoviNave(${idx})" class="text-rose-500 font-bold hover:text-rose-700">&times;</button>
+                    </div>
+                `;
+            });
+        }
+
+        function apriGestioneNavi() { document.getElementById('modalNavi').classList.remove('hidden'); document.getElementById('modalNavi').classList.add('flex'); }
+        function chiudiGestioneNavi() { document.getElementById('modalNavi').classList.add('hidden'); document.getElementById('modalNavi').classList.remove('flex'); }
+
+        function aggiungiNave() {
+            const val = document.getElementById('nuovaNaveNome').value.trim();
+            if (val && !listaNavi.includes(val)) {
+                listaNavi.push(val);
+                document.getElementById('nuovaNaveNome').value = '';
+                popolaSelectNavi();
+                salvaInLocalStorage();
+            }
+        }
+
+        function rimuoviNave(idx) {
+            listaNavi.splice(idx, 1);
+            popolaSelectNavi();
+            salvaInLocalStorage();
+        }
+
+        function switchTab(tab) {
+            document.getElementById('viewCalendario').classList.add('hidden');
+            document.getElementById('viewRateo').classList.add('hidden');
+            document.getElementById('navCal').classList.remove('active');
+            document.getElementById('navRateo').classList.remove('active');
+
+            if (tab === 'calendario') {
+                document.getElementById('viewCalendario').classList.remove('hidden');
+                document.getElementById('navCal').classList.add('active');
+                renderCalendario();
+            } else {
+                document.getElementById('viewRateo').classList.remove('hidden');
+                document.getElementById('navRateo').classList.add('active');
+                caricaDatiAnnoCorrente();
+            }
+        }
+
+        function aggiornaSelectAnni() {
+            const sel = document.getElementById('selAnnoHeader');
+            sel.innerHTML = '';
+            const anniOrdinati = Object.keys(databaseAnni).map(Number).sort((a, b) => a - b);
+            
+            if (anniOrdinati.length === 0) {
+                anniOrdinati.push(annoSelezionato);
+                databaseAnni[annoSelezionato] = getStrutturaAnnoVuota();
+            }
+
+            anniOrdinati.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a;
+                opt.innerText = a;
+                if (a === annoSelezionato) opt.selected = true;
+                sel.appendChild(opt);
+            });
+
+            document.getElementById('txtAnnoConfig').innerText = annoSelezionato;
+            document.getElementById('txtAnnoTabella').innerText = annoSelezionato;
+            renderCalendario();
+            caricaDatiAnnoCorrente();
+        }
+
+        function selezionaAnnoCorrente() {
+            annoSelezionato = parseInt(document.getElementById('selAnnoHeader').value);
+            if (!databaseAnni[annoSelezionato]) {
+                databaseAnni[annoSelezionato] = getStrutturaAnnoVuota();
+            }
+            document.getElementById('txtAnnoConfig').innerText = annoSelezionato;
+            document.getElementById('txtAnnoTabella').innerText = annoSelezionato;
+            renderCalendario();
+            caricaDatiAnnoCorrente();
+            salvaInLocalStorage();
+        }
+
+        function cambiaAnno(delta) {
+            annoSelezionato += delta;
+            if (!databaseAnni[annoSelezionato]) {
+                databaseAnni[annoSelezionato] = getStrutturaAnnoVuota();
+                const annoPrec = annoSelezionato - 1;
+                if (databaseAnni[annoPrec]) {
+                    databaseAnni[annoSelezionato].ferieIniziali = calcolaFerieFinaliAnno(annoPrec);
+                }
+            }
+            aggiornaSelectAnni();
+            salvaInLocalStorage();
+        }
+
+        function cambiaMeseCalendario(delta) {
+            meseCalendario += delta;
+            if (meseCalendario < 0) {
+                meseCalendario = 11;
+                cambiaAnno(-1);
+            } else if (meseCalendario > 11) {
+                meseCalendario = 0;
+                cambiaAnno(1);
+            } else {
+                renderCalendario();
+            }
+        }
+
+        function gestisciSelezioneNaveRapida() {
+            const nave = document.getElementById('selNaveRapida').value;
+            if (nave) {
+                document.getElementById('selTipoGiornoRapido').value = "";
+                document.getElementById('boxOrarioRapido').classList.remove('hidden');
+            } else {
+                document.getElementById('boxOrarioRapido').classList.add('hidden');
+            }
+        }
+
+        function gestisciSelezioneEventoRapido() {
+            const evento = document.getElementById('selTipoGiornoRapido').value;
+            if (evento) {
+                document.getElementById('selNaveRapida').value = "";
+                document.getElementById('boxOrarioRapido').classList.add('hidden');
+            }
+        }
+
+        function renderCalendario() {
+            document.getElementById('txtMeseAnnoCal').innerText = `${mesiNomi[meseCalendario]} ${annoSelezionato}`;
+            const grid = document.getElementById('gridCalendario');
+            grid.innerHTML = '';
+
+            const primoGiorno = new Date(annoSelezionato, meseCalendario, 1);
+            const ultimoGiorno = new Date(annoSelezionato, meseCalendario + 1, 0);
+            const offsetInizio = (primoGiorno.getDay() + 6) % 7;
+            const giorniTot = ultimoGiorno.getDate();
+
+            if (!databaseAnni[annoSelezionato].dettagliGiorni) {
+                databaseAnni[annoSelezionato].dettagliGiorni = {};
+            }
+            const dettagli = databaseAnni[annoSelezionato].dettagliGiorni;
+
+            for (let i = 0; i < offsetInizio; i++) {
+                grid.innerHTML += `<div class="h-20 bg-slate-50/50 rounded-xl border border-dashed border-slate-200"></div>`;
+            }
+
+            for (let g = 1; g <= giorniTot; g++) {
+                const dataKey = `${annoSelezionato}-${String(meseCalendario + 1).padStart(2, '0')}-${String(g).padStart(2, '0')}`;
+                const infoGiorno = dettagli[dataKey];
+
+                let tagHtml = '';
+                let bgClass = 'bg-white hover:bg-slate-50';
+
+                if (infoGiorno) {
+                    if (infoGiorno.tipo === 'TURNO') {
+                        bgClass = 'bg-emerald-50 border-emerald-300';
+                        tagHtml = `
+                            <div class="text-[10px] font-bold text-emerald-700 truncate">${infoGiorno.nave || 'Turno'}</div>
+                            <div class="text-[9px] text-emerald-600">${infoGiorno.oraInizio || ''}-${infoGiorno.oraFine || ''}</div>
+                        `;
+                    } else if (infoGiorno.tipo === 'FERIE') {
+                        bgClass = 'bg-amber-50 border-amber-300';
+                        tagHtml = `<div class="text-[10px] font-bold text-amber-700">FERIE</div>`;
+                    } else if (infoGiorno.tipo === 'MA') {
+                        bgClass = 'bg-rose-50 border-rose-300';
+                        tagHtml = `<div class="text-[10px] font-bold text-rose-700">MALATTIA</div>`;
+                    } else if (infoGiorno.tipo === 'INF') {
+                        bgClass = 'bg-purple-50 border-purple-300';
+                        tagHtml = `<div class="text-[10px] font-bold text-purple-700">INFORTUNIO</div>`;
+                    } else if (infoGiorno.tipo === 'FS') {
+                        bgClass = 'bg-blue-50 border-blue-300';
+                        tagHtml = `<div class="text-[10px] font-bold text-blue-700">FEST. SOPP.</div>`;
+                    } else if (infoGiorno.tipo === 'PNR') {
+                        bgClass = 'bg-slate-100 border-slate-300';
+                        tagHtml = `<div class="text-[10px] font-bold text-slate-700">PNR</div>`;
+                    } else if (infoGiorno.tipo === 'RIPOSO') {
+                        bgClass = 'bg-gray-50 border-gray-200';
+                        tagHtml = `<div class="text-[10px] font-bold text-gray-400">RIPOSO</div>`;
+                    }
+                }
+
+                grid.innerHTML += `
+                    <div onclick="cliccaGiorno('${dataKey}')" class="h-20 p-1.5 border rounded-xl flex flex-col justify-between cursor-pointer transition ${bgClass}">
+                        <div class="font-bold text-xs text-slate-700">${g}</div>
+                        <div class="overflow-hidden">${tagHtml}</div>
+                    </div>
+                `;
+            }
+
+            aggiornaConteggiMeseDaCalendario();
+        }
+
+        function cliccaGiorno(dataKey) {
+            const naveRapida = document.getElementById('selNaveRapida').value;
+            const eventoRapido = document.getElementById('selTipoGiornoRapido').value;
+
+            if (naveRapida) {
+                const oraInizio = document.getElementById('oraInizioRapida').value;
+                const oraFine = document.getElementById('oraFineRapida').value;
+
+                databaseAnni[annoSelezionato].dettagliGiorni[dataKey] = {
+                    tipo: 'TURNO', nave: naveRapida, oraInizio: oraInizio, oraFine: oraFine
+                };
+                sincronizzaCalendarioConTabellaRateo();
+                renderCalendario();
+                salvaInLocalStorage();
+            } 
+            else if (eventoRapido) {
+                databaseAnni[annoSelezionato].dettagliGiorni[dataKey] = { tipo: eventoRapido };
+                sincronizzaCalendarioConTabellaRateo();
+                renderCalendario();
+                salvaInLocalStorage();
+            } 
+            else {
+                apriModaleGiorno(dataKey);
+            }
+        }
+
+        function apriModaleGiorno(dataKey) {
+            giornoSelezionatoDataKey = dataKey;
+            document.getElementById('modalGiornoData').innerText = `Giorno: ${dataKey}`;
+            
+            const info = databaseAnni[annoSelezionato].dettagliGiorni[dataKey] || {};
+            document.getElementById('modTipoGiorno').value = info.tipo || 'TURNO';
+            document.getElementById('modNave').value = info.nave || (listaNavi[0] || '');
+            document.getElementById('modOraInizio').value = info.oraInizio || '08:00';
+            document.getElementById('modOraFine').value = info.oraFine || '16:00';
+            document.getElementById('modNote').value = info.note || '';
+
+            toggleModaleFields();
+            document.getElementById('modalGiorno').classList.remove('hidden');
+            document.getElementById('modalGiorno').classList.add('flex');
+        }
+
+        function chiudiModaleGiorno() {
+            document.getElementById('modalGiorno').classList.add('hidden');
+            document.getElementById('modalGiorno').classList.remove('flex');
+        }
+
+        function toggleModaleFields() {
+            const tipo = document.getElementById('modTipoGiorno').value;
+            const box = document.getElementById('modBoxTurno');
+            if (tipo === 'TURNO') box.classList.remove('hidden');
+            else box.classList.add('hidden');
+        }
+
+        function salvaGiornoModale() {
+            if (!giornoSelezionatoDataKey) return;
+            const tipo = document.getElementById('modTipoGiorno').value;
+            const nave = document.getElementById('modNave').value;
+            const oraInizio = document.getElementById('modOraInizio').value;
+            const oraFine = document.getElementById('modOraFine').value;
+            const note = document.getElementById('modNote').value;
+
+            databaseAnni[annoSelezionato].dettagliGiorni[giornoSelezionatoDataKey] = {
+                tipo, nave, oraInizio, oraFine, note
+            };
+
+            sincronizzaCalendarioConTabellaRateo();
+            renderCalendario();
+            salvaInLocalStorage();
+            chiudiModaleGiorno();
+        }
+
+        function eliminaGiornoModale() {
+            if (!giornoSelezionatoDataKey) return;
+            delete databaseAnni[annoSelezionato].dettagliGiorni[giornoSelezionatoDataKey];
+            sincronizzaCalendarioConTabellaRateo();
+            renderCalendario();
+            salvaInLocalStorage();
+            chiudiModaleGiorno();
+        }
+
+        function sincronizzaCalendarioConTabellaRateo() {
+            const dettagli = databaseAnni[annoSelezionato].dettagliGiorni || {};
+            const conteggi = Array.from({length: 12}, () => ({ turniEffettivi: 0, ferieUsate: 0, ma: 0, inf: 0, festSopp: 0, pnr: 0, riposo: 0 }));
+
+            Object.keys(dettagli).forEach(dateKey => {
+                const parts = dateKey.split('-');
+                if (parseInt(parts[0]) === annoSelezionato) {
+                    const mIdx = parseInt(parts[1]) - 1;
+                    const item = dettagli[dateKey];
+                    if (item.tipo === 'TURNO') conteggi[mIdx].turniEffettivi++;
+                    else if (item.tipo === 'FERIE') conteggi[mIdx].ferieUsate++;
+                    else if (item.tipo === 'MA') conteggi[mIdx].ma++;
+                    else if (item.tipo === 'INF') conteggi[mIdx].inf++;
+                    else if (item.tipo === 'FS') conteggi[mIdx].festSopp++;
+                    else if (item.tipo === 'PNR') conteggi[mIdx].pnr++;
+                    else if (item.tipo === 'RIPOSO') conteggi[mIdx].riposo++;
+                }
+            });
+
+            conteggi.forEach((c, idx) => {
+                databaseAnni[annoSelezionato].datiMesi[idx].turniEffettivi = c.turniEffettivi;
+                databaseAnni[annoSelezionato].datiMesi[idx].ferieUsate = c.ferieUsate;
+                databaseAnni[annoSelezionato].datiMesi[idx].ma = c.ma;
+                databaseAnni[annoSelezionato].datiMesi[idx].inf = c.inf;
+                databaseAnni[annoSelezionato].datiMesi[idx].festSopp = c.festSopp;
+                databaseAnni[annoSelezionato].datiMesi[idx].pnr = c.pnr;
+                databaseAnni[annoSelezionato].datiMesi[idx].riposo = c.riposo;
+            });
+        }
+
+        function aggiornaConteggiMeseDaCalendario() {
+            const meseObj = databaseAnni[annoSelezionato].datiMesi[meseCalendario];
+            const totTurni = (meseObj.turniEffettivi || 0) + (meseObj.ma || 0) + (meseObj.inf || 0) + (meseObj.festSopp || 0) + (meseObj.ferieUsate || 0);
+            document.getElementById('statCalTurni').innerText = totTurni;
+        }
+
+        function calcolaFerieFinaliAnno(anno) {
+            const dati = databaseAnni[anno];
+            if (!dati) return 0;
+            let totRateo = 0;
+            let totFerieUsate = 0;
+            dati.datiMesi.forEach(item => {
+                totFerieUsate += item.ferieUsate;
+                totRateo += calcolaRateoPerItem(item);
+            });
+            return Math.max(0, parseFloat((dati.ferieIniziali + totRateo - totFerieUsate).toFixed(3)));
+        }
+
+        function calcolaRateoPerItem(item) {
+            const turniTotali = (item.turniEffettivi || 0) + (item.ma || 0) + (item.inf || 0) + (item.festSopp || 0) + (item.ferieUsate || 0);
+            if (turniTotali >= 16) {
+                return 2.166;
+            } else if (turniTotali > 0) {
+                let res = turniTotali * 0.086;
+                return res > 2.166 ? 2.166 : res;
+            }
+            return 0;
+        }
+
+        function caricaDatiAnnoCorrente() {
+            const dati = databaseAnni[annoSelezionato];
+            document.getElementById('inpFerieIniziali').value = dati.ferieIniziali;
+            document.getElementById('inpFSMaturateTot').value = dati.fsMaturateTot;
+            generaTabella();
+        }
+
+        function generaTabella() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            const datiMesi = databaseAnni[annoSelezionato].datiMesi;
+
+            datiMesi.forEach((item) => {
+                const totMese = (item.turniEffettivi || 0) + (item.ma || 0) + (item.inf || 0) + (item.festSopp || 0) + (item.ferieUsate || 0);
+                const rateo = calcolaRateoPerItem(item);
+                const pnrRiposoTot = (item.pnr || 0) + (item.riposo || 0);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="month-name">${item.mese}</td>
+                    <td><strong>${totMese}</strong></td>
+                    <td>${item.turniEffettivi || 0}</td>
+                    <td>${item.ferieUsate || 0}</td>
+                    <td>${item.ma || 0}</td>
+                    <td>${item.inf || 0}</td>
+                    <td>${item.festSopp || 0}</td>
+                    <td>${pnrRiposoTot}</td>
+                    <td class="rateo-val">${rateo > 0 ? rateo.toFixed(3).replace('.', ',') : '0,000'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            calcolaTotali();
+        }
+
+        function salvaECalcola() {
+            databaseAnni[annoSelezionato].ferieIniziali = parseFloat(document.getElementById('inpFerieIniziali').value) || 0;
+            databaseAnni[annoSelezionato].fsMaturateTot = parseFloat(document.getElementById('inpFSMaturateTot').value) || 0;
+            calcolaTotali();
+            salvaInLocalStorage();
+        }
+
+        function calcolaTotali() {
+            const dati = databaseAnni[annoSelezionato];
+            let totTurni = 0;
+            let totFerieUsate = 0;
+            let totFSUtilizzate = 0;
+            let totRateoMaturato = 0;
+
+            dati.datiMesi.forEach((item) => {
+                const totMese = (item.turniEffettivi || 0) + (item.ma || 0) + (item.inf || 0) + (item.festSopp || 0) + (item.ferieUsate || 0);
+                totTurni += totMese;
+                totFerieUsate += item.ferieUsate;
+                totFSUtilizzate += item.festSopp;
+                totRateoMaturato += calcolaRateoPerItem(item);
+            });
+
+            const ferieIniziali = dati.ferieIniziali;
+            const ferieDisponibiliReali = ferieIniziali + totRateoMaturato - totFerieUsate;
+            
+            const TOLLERANZA_VISIVA = 0.05;
+            const prossimoInteroFerie = Math.ceil(ferieDisponibiliReali);
+            let ferieMancanti = prossimoInteroFerie - ferieDisponibiliReali;
+            if (ferieMancanti <= 0.001) ferieMancanti = 1.0;
+            
+            let turniMancanti = Math.ceil(ferieMancanti / 0.086);
+            if (turniMancanti < 0) turniMancanti = 0;
+
+            let rateoVisivo = Math.floor(totRateoMaturato);
+            if ((Math.ceil(totRateoMaturato) - totRateoMaturato) <= TOLLERANZA_VISIVA) {
+                rateoVisivo = Math.ceil(totRateoMaturato);
+            }
+
+            let ferieDispVisive = Math.floor(ferieDisponibiliReali);
+            if ((Math.ceil(ferieDisponibiliReali) - ferieDisponibiliReali) <= TOLLERANZA_VISIVA) {
+                ferieDispVisive = Math.ceil(ferieDisponibiliReali);
+            }
+
+            const fsMaturateTot = dati.fsMaturateTot;
+            const fsDisponibiliTotali = fsMaturateTot - totFSUtilizzate;
+
+            document.getElementById('totTurniAnni').innerText = totTurni;
+            document.getElementById('dispResidueIniziali').innerText = ferieIniziali + ' gg';
+            document.getElementById('totFerieUtilizzate').innerText = totFerieUsate + ' gg';
+            document.getElementById('ferieDisponibiliTot').innerText = `${ferieDispVisive} gg (${ferieDisponibiliReali.toFixed(3).replace('.', ',')})`;
+            
+            document.getElementById('totFSMaturateAnno').innerText = fsMaturateTot + ' gg';
+            document.getElementById('totFSUtilizzate').innerText = totFSUtilizzate + ' gg';
+            document.getElementById('fsDisponibiliTot').innerText = fsDisponibiliTotali + ' gg';
+
+            document.getElementById('totFerieMaturate').innerText = `${totRateoMaturato.toFixed(3).replace('.', ',')} (${rateoVisivo} gg)`;
+            document.getElementById('rateoMancante').innerText = ferieMancanti.toFixed(3).replace('.', ',');
+            document.getElementById('turniMancanti').innerText = turniMancanti > 0 ? turniMancanti : 0;
+        }
+
+        function esportaPDF() { window.print(); }
+
+        function esportaDatiJSON() {
+            const dataToExport = {
+                annoCorrente: annoSelezionato,
+                databaseAnni: databaseAnni,
+                listaNavi: listaNavi
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `shiftlog_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importaDatiJSON(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.databaseAnni) {
+                        databaseAnni = importedData.databaseAnni;
+                        if (importedData.annoCorrente) annoSelezionato = importedData.annoCorrente;
+                        if (importedData.listaNavi) listaNavi = importedData.listaNavi;
+                        popolaSelectNavi();
+                        aggiornaSelectAnni();
+                        salvaInLocalStorage();
+                        alert("Backup ShiftLog ripristinato con successo!");
+                    } else {
+                        alert("File JSON non valido.");
+                    }
+                } catch (err) {
+                    alert("Errore nella lettura del file JSON.");
+                }
+            };
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0]);
+            }
+        }
+
+        function resetDatiCorrenti() {
+            if (confirm(`Sei sicuro di voler azzerare tutti i dati dell'anno ${annoSelezionato}?`)) {
+                databaseAnni[annoSelezionato] = getStrutturaAnnoVuota();
+                renderCalendario();
+                caricaDatiAnnoCorrente();
+                salvaInLocalStorage();
+                alert(`Dati dell'anno ${annoSelezionato} resettati con successo!`);
+            }
+        }
+
+        window.onload = function() {
+            caricaDaLocalStorage();
+        };
+    </script>
+</body>
+</html>
