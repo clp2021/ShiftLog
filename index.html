@@ -740,19 +740,35 @@
             if (!dati) return 0;
             let totRateo = 0;
             let totFerieUsate = 0;
-            dati.datiMesi.forEach(item => {
+            dati.datiMesi.forEach((item, idx) => {
                 totFerieUsate += item.ferieUsate;
-                totRateo += calcolaRateoPerItem(item);
+                totRateo += calcolaRateoPerItem(item, idx, anno);
             });
             return Math.max(0, parseFloat((dati.ferieIniziali + totRateo - totFerieUsate).toFixed(3)));
         }
 
-        function calcolaRateoPerItem(item) {
-            const turniTotali = (item.turniEffettivi || 0) + (item.ma || 0) + (item.inf || 0) + (item.festSopp || 0) + (item.ferieUsate || 0);
-            if (turniTotali >= 16) {
+        /* REGOLA RICALIBRATA SECONDO LA VECCHIA APP:
+           Le giornate usate come Ferie o Festività Soppresse non vengono conteggiate per maturare rateo 
+           se si riferiscono a mesi non ancora consolidati / futuri. */
+        function calcolaRateoPerItem(item, mIdx, anno) {
+            const oggi = new Date();
+            const annoAttuale = oggi.getFullYear();
+            const meseAttuale = oggi.getMonth();
+
+            let includeFerieEFs = true;
+            if (anno > annoAttuale || (anno === annoAttuale && mIdx > meseAttuale)) {
+                includeFerieEFs = false;
+            }
+
+            let turniValidi = (item.turniEffettivi || 0) + (item.ma || 0) + (item.inf || 0);
+            if (includeFerieEFs) {
+                turniValidi += (item.festSopp || 0) + (item.ferieUsate || 0);
+            }
+
+            if (turniValidi >= 16) {
                 return 2.166;
-            } else if (turniTotali > 0) {
-                let res = turniTotali * 0.086;
+            } else if (turniValidi > 0) {
+                let res = turniValidi * 0.086;
                 return res > 2.166 ? 2.166 : res;
             }
             return 0;
@@ -770,9 +786,9 @@
             tbody.innerHTML = '';
             const datiMesi = databaseAnni[annoSelezionato].datiMesi;
 
-            datiMesi.forEach((item) => {
+            datiMesi.forEach((item, idx) => {
                 const totMese = (item.turniEffettivi || 0) + (item.ma || 0) + (item.inf || 0) + (item.festSopp || 0) + (item.ferieUsate || 0);
-                const rateo = calcolaRateoPerItem(item);
+                const rateo = calcolaRateoPerItem(item, idx, annoSelezionato);
                 const pnrRiposoTot = (item.pnr || 0) + (item.riposo || 0);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -806,12 +822,12 @@
             let totFSUtilizzate = 0;
             let totRateoMaturato = 0;
 
-            dati.datiMesi.forEach((item) => {
+            dati.datiMesi.forEach((item, idx) => {
                 const totMese = (item.turniEffettivi || 0) + (item.ma || 0) + (item.inf || 0) + (item.festSopp || 0) + (item.ferieUsate || 0);
                 totTurni += totMese;
                 totFerieUsate += item.ferieUsate;
                 totFSUtilizzate += item.festSopp;
-                totRateoMaturato += calcolaRateoPerItem(item);
+                totRateoMaturato += calcolaRateoPerItem(item, idx, annoSelezionato);
             });
 
             const ferieIniziali = dati.ferieIniziali;
