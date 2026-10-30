@@ -10,7 +10,7 @@
         :root {
             --primary: #10b981;
             --primary-dark: #059669;
-            --bg-color: #f8fafc;
+            --bg-color: #f1f5f9;
             --card-bg: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
@@ -20,11 +20,31 @@
             --info: #3b82f6;
         }
 
+        /* Variabili per Dark Mode (Forzatura colore testo chiaro globale per sicurezza) */
+        .dark {
+            --primary: #10b981;
+            --primary-dark: #34d399;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc !important;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --info: #60a5fa;
+        }
+
         body {
-            background-color: #f1f5f9;
+            background-color: var(--bg-color);
             color: var(--text-main);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             padding-bottom: 80px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Assicuriamo che titoli e testi ereditino sempre il colore principale */
+        h1, h2, h3, h4, h5, h6, span, label, p {
+            color: inherit;
         }
 
         .card-custom {
@@ -33,6 +53,7 @@
             padding: 16px;
             border: 1px solid var(--border);
             box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .tab-btn.active {
@@ -43,23 +64,23 @@
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .rateo-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; min-width: 600px; }
         .rateo-table th, .rateo-table td { border: 1px solid var(--border); padding: 8px 6px; }
-        .rateo-table th { background-color: #f1f5f9; font-weight: 700; color: var(--text-main); font-size: 0.75rem; text-transform: uppercase; }
-        .rateo-table td.month-name { text-align: left; font-weight: 600; padding-left: 10px; text-transform: capitalize; background-color: #fafafa; }
-        .rateo-val { font-weight: 700; background-color: #f8fafc; color: var(--text-main); }
+        .rateo-table th { background-color: var(--card-bg); font-weight: 700; color: var(--text-main); font-size: 0.75rem; text-transform: uppercase; }
+        .rateo-table td.month-name { text-align: left; font-weight: 600; padding-left: 10px; text-transform: capitalize; background-color: var(--card-bg); }
+        .rateo-val { font-weight: 700; background-color: var(--card-bg); color: var(--text-main); }
 
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-top: 15px; }
         .summary-table { width: 100%; min-width: unset; }
-        .summary-table td { text-align: left; padding: 8px 12px; font-size: 0.85rem; border: none; }
+        .summary-table td { text-align: left; padding: 8px 12px; font-size: 0.85rem; border: none; color: var(--text-main); }
         .summary-table td:last-child { text-align: right; font-weight: 700; width: 140px; }
         
-        .highlight-mid-green { color: var(--primary-dark); font-size: 1.05rem !important; font-weight: 700 !important; }
-        .highlight-mid-warning { color: var(--warning); font-size: 1.05rem !important; font-weight: 700 !important; }
-        .highlight-red { color: var(--danger); font-weight: 700; }
+        .highlight-mid-green { color: var(--primary-dark) !important; font-size: 1.05rem !important; font-weight: 700 !important; }
+        .highlight-mid-warning { color: var(--warning) !important; font-size: 1.05rem !important; font-weight: 700 !important; }
+        .highlight-red { color: var(--danger) !important; font-weight: 700 !important; }
 
         @media print {
             .no-print { display: none !important; }
-            body { background: white; padding-bottom: 0; }
-            .card-custom { box-shadow: none; border: none; }
+            body { background: white; padding-bottom: 0; color: black; }
+            .card-custom { box-shadow: none; border: 1px solid #ccc; background: white; }
         }
     </style>
 </head>
@@ -68,32 +89,38 @@
     <div class="max-w-3xl mx-auto p-3 sm:p-5">
 
         <!-- HEADER APP -->
-        <header class="card-custom mb-4 flex items-center justify-between">
+        <header class="card-custom mb-4 flex flex-col gap-3">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-emerald-600 font-extrabold text-base flex items-center justify-center tracking-tight shadow-md">
                     <span class="text-white">S</span><span class="text-emerald-200">L</span>
                 </div>
-                <h1 class="font-bold text-xl tracking-wider text-slate-800">SHIFTLOG</h1>
+                <h1 class="font-bold text-xl tracking-wider">SHIFTLOG</h1>
+                <!-- Pulsante Dark Mode vicino alla scritta ShiftLog -->
+                <button onclick="toggleDarkMode()" class="ml-2 p-2 rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Cambia Modalità">
+                    <i id="iconaTema" class="fa-solid fa-moon text-base"></i>
+                </button>
             </div>
-            <div class="flex items-center gap-2">
-                <button onclick="cambiaAnno(-1)" class="px-3 py-1.5 border rounded-lg hover:bg-slate-100 text-slate-600 font-bold">◀</button>
-                <select id="selAnnoHeader" onchange="selezionaAnnoCorrente()" class="font-bold text-lg border rounded-lg px-2 py-1 bg-white text-center">
+
+            <!-- ANNO E FRECCE SOTTO LA SCRITTA SHIFTLOG -->
+            <div class="flex items-center justify-center gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="cambiaAnno(-1)" class="px-3.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-bold">◀</button>
+                <select id="selAnnoHeader" onchange="selezionaAnnoCorrente()" class="font-bold text-lg border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-1 bg-white dark:bg-slate-800 text-center">
                 </select>
-                <button onclick="cambiaAnno(1)" class="px-3 py-1.5 border rounded-lg hover:bg-slate-100 text-slate-600 font-bold">▶</button>
+                <button onclick="cambiaAnno(1)" class="px-3.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-bold">▶</button>
             </div>
         </header>
 
         <!-- BANNER BACKUP E RIPRISTINO -->
-        <div id="bannerBackup" class="card-custom mb-4 bg-sky-50 border-sky-200 no-print">
+        <div id="bannerBackup" class="card-custom mb-4 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-900 no-print">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-2 text-sky-800 text-sm">
-                    <i class="fa-solid fa-floppy-disk text-sky-600"></i>
+                <div class="flex items-center gap-2 text-sky-800 dark:text-sky-300 text-sm">
+                    <i class="fa-solid fa-floppy-disk text-sky-600 dark:text-sky-400"></i>
                     <span><strong>Backup:</strong> Salva o ripristina i tuoi dati in un file.</span>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button onclick="esportaDatiJSON()" class="px-3 py-1.5 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700">📥 Salva</button>
-                    <button onclick="document.getElementById('fileImport').click()" class="px-3 py-1.5 bg-white border border-sky-300 text-sky-800 rounded-lg text-xs font-semibold hover:bg-sky-100">📤 Carica</button>
-                    <button onclick="document.getElementById('bannerBackup').style.display='none'" class="px-3 py-1.5 border border-sky-300 text-sky-800 rounded-lg text-xs font-semibold hover:bg-sky-100">&times;</button>
+                    <button onclick="document.getElementById('fileImport').click()" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-sky-300 dark:border-sky-700 text-sky-800 dark:text-sky-300 rounded-lg text-xs font-semibold hover:bg-sky-100 dark:hover:bg-slate-700">📤 Carica</button>
+                    <button onclick="document.getElementById('bannerBackup').style.display='none'" class="px-3 py-1.5 border border-sky-300 dark:border-sky-700 text-sky-800 dark:text-sky-300 rounded-lg text-xs font-semibold hover:bg-sky-100 dark:hover:bg-slate-700">&times;</button>
                 </div>
                 <input type="file" id="fileImport" accept=".json" style="display: none;" onchange="importaDatiJSON(event)">
             </div>
@@ -104,35 +131,35 @@
             <!-- INTESTAZIONE MESE -->
             <div class="card-custom mb-4">
                 <div class="flex items-center justify-between mb-2">
-                    <button onclick="cambiaMeseCalendario(-1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">◀</button>
-                    <h2 id="txtMeseAnnoCal" class="text-xl font-bold text-slate-800 capitalize">Ottobre 2026</h2>
-                    <button onclick="cambiaMeseCalendario(1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">▶</button>
+                    <button onclick="cambiaMeseCalendario(-1)" class="w-10 h-10 border border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center font-bold hover:bg-slate-100 dark:hover:bg-slate-800">◀</button>
+                    <h2 id="txtMeseAnnoCal" class="text-xl font-bold capitalize">Ottobre 2026</h2>
+                    <button onclick="cambiaMeseCalendario(1)" class="w-10 h-10 border border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center font-bold hover:bg-slate-100 dark:hover:bg-slate-800">▶</button>
                 </div>
 
                 <!-- TURNI TOTALI MESE & STRAORDINARI -->
-                <div class="text-center bg-slate-50 py-2 rounded-xl text-sm font-semibold text-slate-600 flex flex-col sm:flex-row justify-center items-center gap-2">
-                    <span>Turni Totali Mese: <span id="statCalTurni" class="text-emerald-600 font-bold text-base">0</span></span>
-                    <span class="hidden sm:inline text-slate-300">|</span>
-                    <span>Straordinari Mese: <span id="statCalStraordinari" class="text-amber-600 font-bold text-base">00:00</span></span>
+                <div class="text-center bg-slate-50 dark:bg-slate-800/60 py-2 rounded-xl text-sm font-semibold flex flex-col sm:flex-row justify-center items-center gap-2">
+                    <span>Turni Totali Mese: <span id="statCalTurni" class="text-emerald-600 dark:text-emerald-400 font-bold text-base">0</span></span>
+                    <span class="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
+                    <span>Straordinari Mese: <span id="statCalStraordinari" class="text-amber-600 dark:text-amber-400 font-bold text-base">00:00</span></span>
                 </div>
             </div>
 
             <!-- SELEZIONE RAPIDA INTELLIGENTE -->
             <div class="card-custom mb-4 no-print">
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Assegnazione Rapida Giorno</h3>
+                <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Assegnazione Rapida Giorno</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Seleziona Nave (Turno Ordinario):</label>
+                        <label class="block text-xs font-semibold mb-1">Seleziona Nave (Turno Ordinario):</label>
                         <div class="flex gap-2">
-                            <select id="selNaveRapida" onchange="gestisciSelezioneNaveRapida()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                            <select id="selNaveRapida" onchange="gestisciSelezioneNaveRapida()" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 font-medium">
                                 <option value="">-- Seleziona Nave --</option>
                             </select>
-                            <button onclick="apriGestioneNavi()" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-700 text-sm font-bold" title="Gestisci Navi">+</button>
+                            <button onclick="apriGestioneNavi()" class="px-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm font-bold" title="Gestisci Navi">+</button>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Oppure Seleziona Evento / Assenza:</label>
-                        <select id="selTipoGiornoRapido" onchange="gestisciSelezioneEventoRapido()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                        <label class="block text-xs font-semibold mb-1">Oppure Seleziona Evento / Assenza:</label>
+                        <select id="selTipoGiornoRapido" onchange="gestisciSelezioneEventoRapido()" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 font-medium">
                             <option value="">-- Seleziona Evento --</option>
                             <option value="FERIE">Ferie (Giornata Intera)</option>
                             <option value="MA">Malattia (Giornata Intera)</option>
@@ -145,12 +172,12 @@
                 </div>
                 <div id="boxOrarioRapido" class="grid grid-cols-2 gap-3 mt-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Inizio:</label>
-                        <input type="time" id="oraInizioRapida" value="08:00" class="w-full border rounded-lg p-2 text-sm">
+                        <label class="block text-xs font-semibold mb-1">Ora Inizio:</label>
+                        <input type="time" id="oraInizioRapida" value="08:00" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-800">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Fine:</label>
-                        <input type="time" id="oraFineRapida" value="16:00" class="w-full border rounded-lg p-2 text-sm">
+                        <label class="block text-xs font-semibold mb-1">Ora Fine:</label>
+                        <input type="time" id="oraFineRapida" value="16:00" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-800">
                     </div>
                 </div>
             </div>
@@ -167,20 +194,20 @@
         <!-- ================= VISTA REPORT & STORICO ================= -->
         <div id="viewReport" class="hidden space-y-4">
             <!-- SELETTORE MODALITÀ REPORT -->
-            <div class="card-custom flex p-1 bg-slate-200/60 rounded-xl">
-                <button onclick="switchModoReport('mensile')" id="btnReportMensile" class="flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 bg-white shadow-sm transition">📅 Report Mensile</button>
-                <button onclick="switchModoReport('annuale')" id="btnReportAnnuale" class="flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-700 transition">📊 Report Annuale</button>
+            <div class="card-custom flex p-1 bg-slate-200/60 dark:bg-slate-800 rounded-xl">
+                <button onclick="switchModoReport('mensile')" id="btnReportMensile" class="flex-1 py-2 rounded-lg font-bold text-sm bg-white dark:bg-slate-700 shadow-sm transition">📅 Report Mensile</button>
+                <button onclick="switchModoReport('annuale')" id="btnReportAnnuale" class="flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 dark:text-slate-400 hover:opacity-100 transition">📊 Report Annuale</button>
             </div>
 
             <!-- REPORT MENSILE -->
             <div id="boxReportMensile" class="space-y-4">
                 <div class="card-custom flex items-center justify-between">
-                    <button onclick="cambiaMeseReport(-1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">◀</button>
+                    <button onclick="cambiaMeseReport(-1)" class="w-10 h-10 border border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center font-bold hover:bg-slate-100 dark:hover:bg-slate-800">◀</button>
                     <div class="text-center">
-                        <h2 id="txtMeseAnnoReport" class="text-lg font-bold text-slate-800 capitalize">Ottobre 2026</h2>
-                        <span class="text-xs text-slate-500 font-semibold">Riepilogo turni per Nave e Assenze</span>
+                        <h2 id="txtMeseAnnoReport" class="text-lg font-bold capitalize">Ottobre 2026</h2>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">Riepilogo turni per Nave e Assenze</span>
                     </div>
-                    <button onclick="cambiaMeseReport(1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">▶</button>
+                    <button onclick="cambiaMeseReport(1)" class="w-10 h-10 border border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center font-bold hover:bg-slate-100 dark:hover:bg-slate-800">▶</button>
                 </div>
 
                 <!-- CARD HEADER TOTALE MESE -->
@@ -195,14 +222,14 @@
                 <!-- DETTAGLI MESE (NAVI & ASSENZE) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="card-custom">
-                        <h3 class="font-bold text-slate-800 text-sm border-b pb-2 mb-3 flex items-center gap-2">
+                        <h3 class="font-bold text-sm border-b border-slate-200 dark:border-slate-700 pb-2 mb-3 flex items-center gap-2">
                             <i class="fa-solid fa-ship text-emerald-600"></i> Turni per Nave
                         </h3>
                         <div id="listaNaviMese" class="space-y-2"></div>
                     </div>
 
                     <div class="card-custom">
-                        <h3 class="font-bold text-slate-800 text-sm border-b pb-2 mb-3 flex items-center gap-2">
+                        <h3 class="font-bold text-sm border-b border-slate-200 dark:border-slate-700 pb-2 mb-3 flex items-center gap-2">
                             <i class="fa-solid fa-user-clock text-amber-600"></i> Assenze e Causali
                         </h3>
                         <div id="listaAssenzeMese" class="space-y-2"></div>
@@ -228,15 +255,15 @@
         <div id="viewRateo" class="hidden">
             <!-- CONFIGURAZIONE INIZIALE -->
             <div class="card-custom mb-4 no-print border-l-4 border-l-emerald-500">
-                <h2 class="font-bold text-slate-800 mb-3 text-sm sm:text-base">⚙️ Configurazione Iniziale (<span id="txtAnnoConfig">Anno</span>)</h2>
+                <h2 class="font-bold mb-3 text-sm sm:text-base">⚙️ Configurazione Iniziale (<span id="txtAnnoConfig">Anno</span>)</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Ferie Residue Iniziali:</label>
-                        <input type="number" id="inpFerieIniziali" placeholder="es. 10" step="0.5" value="0" oninput="salvaECalcola()" class="w-full border rounded-lg p-2 text-sm">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Ferie Residue Iniziali:</label>
+                        <input type="number" id="inpFerieIniziali" placeholder="es. 10" step="0.5" value="0" oninput="salvaECalcola()" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-800">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">FS Totali Caricate dall'Azienda:</label>
-                        <input type="number" id="inpFSMaturateTot" placeholder="es. 1, 2..." step="0.5" value="0" oninput="salvaECalcola()" class="w-full border rounded-lg p-2 text-sm">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">FS Totali Caricate dall'Azienda:</label>
+                        <input type="number" id="inpFSMaturateTot" placeholder="es. 1, 2..." step="0.5" value="0" oninput="salvaECalcola()" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-800">
                     </div>
                 </div>
             </div>
@@ -244,7 +271,7 @@
             <!-- TABELLA RIEPILOGO MESI -->
             <div class="card-custom mb-4">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">📋 Riepilogo Mese per Mese (<span id="txtAnnoTabella">Anno</span>)</h2>
+                    <h2 class="font-bold text-sm sm:text-base">📋 Riepilogo Mese per Mese (<span id="txtAnnoTabella">Anno</span>)</h2>
                     <button onclick="esportaPDF()" class="no-print px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">📄 Esporta PDF</button>
                 </div>
 
@@ -271,7 +298,7 @@
             <!-- CARD RECAP TOTALI -->
             <div class="summary-container">
                 <div class="card-custom">
-                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">📊 Totali Ferie</h2>
+                    <h2 class="font-bold text-sm mb-2 border-b border-slate-200 dark:border-slate-700 pb-1">📊 Totali Ferie</h2>
                     <table class="summary-table">
                         <tr><td><strong>Turni Totali Anno</strong></td><td id="totTurniAnni">0</td></tr>
                         <tr><td>Ferie residue iniziali</td><td id="dispResidueIniziali">0 gg</td></tr>
@@ -281,7 +308,7 @@
                 </div>
 
                 <div class="card-custom">
-                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">🗓️ Festività Soppresse (FS)</h2>
+                    <h2 class="font-bold text-sm mb-2 border-b border-slate-200 dark:border-slate-700 pb-1">🗓️ Festività Soppresse (FS)</h2>
                     <table class="summary-table">
                         <tr><td>FS Caricate (Azienda)</td><td id="totFSMaturateAnno">0 gg</td></tr>
                         <tr><td>FS Utilizzate (Anno)</td><td id="totFSUtilizzate" class="highlight-red">0 gg</td></tr>
@@ -290,7 +317,7 @@
                 </div>
 
                 <div class="card-custom">
-                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">🎯 Proiezione Rateo Ferie</h2>
+                    <h2 class="font-bold text-sm mb-2 border-b border-slate-200 dark:border-slate-700 pb-1">🎯 Proiezione Rateo Ferie</h2>
                     <table class="summary-table">
                         <tr><td>Ferie Maturate (Reali / Visive)</td><td id="totFerieMaturate">0,000</td></tr>
                         <tr><td>Rateo mancante allo scatto</td><td id="rateoMancante">0,000</td></tr>
@@ -301,24 +328,29 @@
 
             <!-- RESET ANNO CORRENTE -->
             <div class="card-custom mt-4 no-print flex justify-between items-center">
-                <span class="text-xs text-slate-500 font-medium">Gestione Anno Corrente</span>
-                <button onclick="resetDatiCorrenti()" class="px-3 py-2 border border-rose-300 text-rose-600 rounded-lg text-xs font-semibold hover:bg-rose-50">🗑️ Reset Anno Corrente</button>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Gestione Anno Corrente</span>
+                <button onclick="resetDatiCorrenti()" class="px-3 py-2 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/40">🗑️ Reset Anno Corrente</button>
             </div>
         </div>
+
+        <!-- FIRMA SVILUPPATORE IN BASSO -->
+        <footer class="mt-6 text-center text-xs text-slate-400 dark:text-slate-500 font-medium no-print">
+            Sviluppato da ivan_163
+        </footer>
 
     </div>
 
     <!-- NAVBAR IN BASSO -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around py-2 z-40 no-print shadow-lg">
-        <button onclick="switchTab('calendario')" id="navCal" class="tab-btn active flex-1 flex flex-col items-center py-1 text-slate-500 font-medium text-xs">
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around py-2 z-40 no-print shadow-lg">
+        <button onclick="switchTab('calendario')" id="navCal" class="tab-btn active flex-1 flex flex-col items-center py-1 text-slate-500 dark:text-slate-400 font-medium text-xs">
             <i class="fa-solid fa-calendar-days text-lg mb-0.5"></i>
             <span>Calendario</span>
         </button>
-        <button onclick="switchTab('report')" id="navReport" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 font-medium text-xs">
+        <button onclick="switchTab('report')" id="navReport" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 dark:text-slate-400 font-medium text-xs">
             <i class="fa-solid fa-chart-column text-lg mb-0.5"></i>
             <span>Report</span>
         </button>
-        <button onclick="switchTab('rateo')" id="navRateo" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 font-medium text-xs">
+        <button onclick="switchTab('rateo')" id="navRateo" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 dark:text-slate-400 font-medium text-xs">
             <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
             <span>Rateo & Ferie</span>
         </button>
@@ -326,16 +358,16 @@
 
     <!-- MODALE GIORNO SELEZIONATO -->
     <div id="modalGiorno" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 id="modalGiornoData" class="font-bold text-slate-800 text-lg">Dettaglio Giorno</h3>
-                <button onclick="chiudiModaleGiorno()" class="text-slate-400 text-xl hover:text-slate-600">&times;</button>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-xl border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-2">
+                <h3 id="modalGiornoData" class="font-bold text-lg">Dettaglio Giorno</h3>
+                <button onclick="chiudiModaleGiorno()" class="text-slate-400 text-xl hover:opacity-100">&times;</button>
             </div>
             
             <div class="space-y-3">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo di Evento / Assenza:</label>
-                    <select id="modTipoGiorno" onchange="toggleModaleFields()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                    <label class="block text-xs font-semibold mb-1">Tipo di Evento / Assenza:</label>
+                    <select id="modTipoGiorno" onchange="toggleModaleFields()" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 font-medium">
                         <option value="TURNO">Turno Ordinario (Usa Nave)</option>
                         <option value="FERIE">Ferie (Giornata Intera)</option>
                         <option value="MA">Malattia (Giornata Intera)</option>
@@ -348,49 +380,49 @@
 
                 <div id="modBoxTurno" class="space-y-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nave Assegnata:</label>
-                        <select id="modNave" class="w-full border rounded-lg p-2 text-sm bg-white font-medium"></select>
+                        <label class="block text-xs font-semibold mb-1">Nave Assegnata:</label>
+                        <select id="modNave" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 font-medium"></select>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Inizio:</label>
-                            <input type="time" id="modOraInizio" class="w-full border rounded-lg p-2 text-sm">
+                            <label class="block text-xs font-semibold mb-1">Ora Inizio:</label>
+                            <input type="time" id="modOraInizio" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-700">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Fine:</label>
-                            <input type="time" id="modOraFine" class="w-full border rounded-lg p-2 text-sm">
+                            <label class="block text-xs font-semibold mb-1">Ora Fine:</label>
+                            <input type="time" id="modOraFine" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-700">
                         </div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Straordinario (Ore e Minuti):</label>
-                    <input type="time" id="modStraordinario" value="00:00" class="w-full border rounded-lg p-2 text-sm">
+                    <label class="block text-xs font-semibold mb-1">Straordinario (Ore e Minuti):</label>
+                    <input type="time" id="modStraordinario" value="00:00" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-700">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Note / Dettagli:</label>
-                    <input type="text" id="modNote" placeholder="es. Lavori extra" class="w-full border rounded-lg p-2 text-sm">
+                    <label class="block text-xs font-semibold mb-1">Note / Dettagli:</label>
+                    <input type="text" id="modNote" placeholder="es. Lavori extra" class="w-full border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-700">
                 </div>
             </div>
 
             <div class="flex gap-2 pt-2">
                 <button onclick="salvaGiornoModale()" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700">Salva</button>
-                <button onclick="eliminaGiornoModale()" class="px-4 border border-rose-300 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-50">Rimuovi</button>
+                <button onclick="eliminaGiornoModale()" class="px-4 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 rounded-lg text-sm font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40">Rimuovi</button>
             </div>
         </div>
     </div>
 
     <!-- MODALE GESTIONE NAVI -->
     <div id="modalNavi" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-bold text-slate-800 text-lg">Gestione Navi</h3>
-                <button onclick="chiudiGestioneNavi()" class="text-slate-400 text-xl hover:text-slate-600">&times;</button>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-xl border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-2">
+                <h3 class="font-bold text-lg">Gestione Navi</h3>
+                <button onclick="chiudiGestioneNavi()" class="text-slate-400 text-xl hover:opacity-100">&times;</button>
             </div>
             
             <div class="flex gap-2">
-                <input type="text" id="nuovaNaveNome" placeholder="Nome Nave (es. Nave A)" class="flex-1 border rounded-lg p-2 text-sm">
+                <input type="text" id="nuovaNaveNome" placeholder="Nome Nave (es. Nave A)" class="flex-1 border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-sm bg-white dark:bg-slate-700">
                 <button onclick="aggiungiNave()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700">+</button>
             </div>
 
@@ -411,6 +443,24 @@
         let meseReport = new Date().getMonth();
         let modoReport = 'mensile';
         let giornoSelezionatoDataKey = null;
+        let isDarkMode = false;
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            applyTheme();
+            localStorage.setItem('shiftLogDarkMode', isDarkMode);
+        }
+
+        function applyTheme() {
+            const icona = document.getElementById('iconaTema');
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                icona.className = "fa-solid fa-sun text-base";
+            } else {
+                document.documentElement.classList.remove('dark');
+                icona.className = "fa-solid fa-moon text-base";
+            }
+        }
 
         function getStrutturaAnnoVuota() {
             return {
@@ -427,7 +477,8 @@
             const dataToSave = {
                 annoCorrente: annoSelezionato,
                 databaseAnni: databaseAnni,
-                listaNavi: listaNavi
+                listaNavi: listaNavi,
+                darkMode: isDarkMode
             };
             localStorage.setItem('shiftLogData', JSON.stringify(dataToSave));
         }
@@ -440,10 +491,16 @@
                     if (parsed.databaseAnni) databaseAnni = parsed.databaseAnni;
                     if (parsed.annoCorrente) annoSelezionato = parseInt(parsed.annoCorrente);
                     if (parsed.listaNavi) listaNavi = parsed.listaNavi;
+                    if (parsed.darkMode !== undefined) isDarkMode = parsed.darkMode;
                 } catch (e) {
                     console.error("Errore nel caricamento dei dati", e);
                 }
+            } else {
+                const oldDark = localStorage.getItem('shiftLogDarkMode');
+                if (oldDark !== null) isDarkMode = (oldDark === 'true');
             }
+
+            applyTheme();
 
             if (!databaseAnni[annoSelezionato]) {
                 databaseAnni[annoSelezionato] = getStrutturaAnnoVuota();
@@ -472,7 +529,7 @@
             listContainer.innerHTML = '';
             listaNavi.forEach((n, idx) => {
                 listContainer.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border text-sm">
+                    <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-700 p-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm">
                         <span>${n}</span>
                         <button onclick="rimuoviNave(${idx})" class="text-rose-500 font-bold hover:text-rose-700">&times;</button>
                     </div>
@@ -620,7 +677,7 @@
             const dettagli = databaseAnni[annoSelezionato].dettagliGiorni;
 
             for (let i = 0; i < offsetInizio; i++) {
-                grid.innerHTML += `<div class="h-20 bg-slate-50/50 rounded-xl border border-dashed border-slate-200"></div>`;
+                grid.innerHTML += `<div class="h-20 bg-slate-50/50 dark:bg-slate-800/35 rounded-xl border border-dashed border-slate-200 dark:border-slate-800"></div>`;
             }
 
             for (let g = 1; g <= giorniTot; g++) {
@@ -628,41 +685,41 @@
                 const infoGiorno = dettagli[dataKey];
 
                 let tagHtml = '';
-                let bgClass = 'bg-white hover:bg-slate-50';
+                let bgClass = 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60';
 
                 if (infoGiorno) {
                     if (infoGiorno.tipo === 'TURNO') {
-                        bgClass = 'bg-emerald-50 border-emerald-300';
-                        let extraBadge = infoGiorno.straordinario && infoGiorno.straordinario !== '00:00' ? `<div class="text-[9px] text-amber-600 font-bold">⏱ +${infoGiorno.straordinario}</div>` : '';
+                        bgClass = 'bg-emerald-50 dark:bg-emerald-950/45 border-emerald-300 dark:border-emerald-800';
+                        let extraBadge = infoGiorno.straordinario && infoGiorno.straordinario !== '00:00' ? `<div class="text-[9px] text-amber-600 dark:text-amber-400 font-bold">⏱ +${infoGiorno.straordinario}</div>` : '';
                         tagHtml = `
-                            <div class="text-[10px] font-bold text-emerald-700 truncate">${infoGiorno.nave || 'Turno'}</div>
-                            <div class="text-[9px] text-emerald-600">${infoGiorno.oraInizio || ''}-${infoGiorno.oraFine || ''}</div>
+                            <div class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 truncate">${infoGiorno.nave || 'Turno'}</div>
+                            <div class="text-[9px] text-emerald-600 dark:text-emerald-400">${infoGiorno.oraInizio || ''}-${infoGiorno.oraFine || ''}</div>
                             ${extraBadge}
                         `;
                     } else if (infoGiorno.tipo === 'FERIE') {
-                        bgClass = 'bg-amber-50 border-amber-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-amber-700">FERIE</div>`;
+                        bgClass = 'bg-amber-50 dark:bg-amber-950/45 border-amber-300 dark:border-amber-800';
+                        tagHtml = `<div class="text-[10px] font-bold text-amber-700 dark:text-amber-300">FERIE</div>`;
                     } else if (infoGiorno.tipo === 'MA') {
-                        bgClass = 'bg-rose-50 border-rose-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-rose-700">MALATTIA</div>`;
+                        bgClass = 'bg-rose-50 dark:bg-rose-950/45 border-rose-300 dark:border-rose-800';
+                        tagHtml = `<div class="text-[10px] font-bold text-rose-700 dark:text-rose-300">MALATTIA</div>`;
                     } else if (infoGiorno.tipo === 'INF') {
-                        bgClass = 'bg-purple-50 border-purple-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-purple-700">INFORTUNIO</div>`;
+                        bgClass = 'bg-purple-50 dark:bg-purple-950/45 border-purple-300 dark:border-purple-800';
+                        tagHtml = `<div class="text-[10px] font-bold text-purple-700 dark:text-purple-300">INFORTUNIO</div>`;
                     } else if (infoGiorno.tipo === 'FS') {
-                        bgClass = 'bg-blue-50 border-blue-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-blue-700">FEST. SOPP.</div>`;
+                        bgClass = 'bg-blue-50 dark:bg-blue-950/45 border-blue-300 dark:border-blue-800';
+                        tagHtml = `<div class="text-[10px] font-bold text-blue-700 dark:text-blue-300">FEST. SOPP.</div>`;
                     } else if (infoGiorno.tipo === 'PNR') {
-                        bgClass = 'bg-slate-100 border-slate-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-slate-700">PNR</div>`;
+                        bgClass = 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600';
+                        tagHtml = `<div class="text-[10px] font-bold text-slate-700 dark:text-slate-300">PNR</div>`;
                     } else if (infoGiorno.tipo === 'RIPOSO') {
-                        bgClass = 'bg-gray-50 border-gray-200';
-                        tagHtml = `<div class="text-[10px] font-bold text-gray-400">RIPOSO</div>`;
+                        bgClass = 'bg-gray-50 dark:bg-slate-800/80 border-gray-200 dark:border-slate-700';
+                        tagHtml = `<div class="text-[10px] font-bold text-gray-400 dark:text-slate-400">RIPOSO</div>`;
                     }
                 }
 
                 grid.innerHTML += `
-                    <div onclick="cliccaGiorno('${dataKey}')" class="h-20 p-1.5 border rounded-xl flex flex-col justify-between cursor-pointer transition ${bgClass}">
-                        <div class="font-bold text-xs text-slate-700">${g}</div>
+                    <div onclick="cliccaGiorno('${dataKey}')" class="h-20 p-1.5 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col justify-between cursor-pointer transition ${bgClass}">
+                        <div class="font-bold text-xs">${g}</div>
                         <div class="overflow-hidden">${tagHtml}</div>
                     </div>
                 `;
@@ -809,7 +866,7 @@
             document.getElementById('statCalStraordinari').innerText = strExtra;
         }
 
-        /* ================= SEZIONE REPORT & STORICO ================= */
+        /* ================= SEZIONE REPORT & STORICO ================= -->
         function switchModoReport(modo) {
             modoReport = modo;
             const btnM = document.getElementById('btnReportMensile');
@@ -818,13 +875,13 @@
             const boxA = document.getElementById('boxReportAnnuale');
 
             if (modo === 'mensile') {
-                btnM.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 bg-white shadow-sm transition';
-                btnA.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-700 transition';
+                btnM.className = 'flex-1 py-2 rounded-lg font-bold text-sm bg-white dark:bg-slate-700 shadow-sm transition';
+                btnA.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 dark:text-slate-400 hover:opacity-100 transition';
                 boxM.classList.remove('hidden');
                 boxA.classList.add('hidden');
             } else {
-                btnA.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 bg-white shadow-sm transition';
-                btnM.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-700 transition';
+                btnA.className = 'flex-1 py-2 rounded-lg font-bold text-sm bg-white dark:bg-slate-700 shadow-sm transition';
+                btnM.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 dark:text-slate-400 hover:opacity-100 transition';
                 boxA.classList.remove('hidden');
                 boxM.classList.add('hidden');
             }
@@ -879,7 +936,6 @@
 
             document.getElementById('repTotaleTurniMese').innerText = totTurniMese;
 
-            // Render Navi
             const containerNavi = document.getElementById('listaNaviMese');
             containerNavi.innerHTML = '';
             const naviKeys = Object.keys(naviConteggio);
@@ -888,24 +944,23 @@
             } else {
                 naviKeys.forEach(n => {
                     containerNavi.innerHTML += `
-                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border text-xs">
-                            <span class="font-semibold text-slate-700">${n}</span>
-                            <span class="font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">${naviConteggio[n]} turni</span>
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-xs">
+                            <span class="font-semibold">${n}</span>
+                            <span class="font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2.5 py-0.5 rounded-full">${naviConteggio[n]} turni</span>
                         </div>
                     `;
                 });
             }
 
-            // Render Assenze
             const containerAssenze = document.getElementById('listaAssenzeMese');
             containerAssenze.innerHTML = '';
             const etichetteAssenze = {
-                MA: { label: 'Malattia (MA)', color: 'text-rose-700 bg-rose-100' },
-                FERIE: { label: 'Ferie', color: 'text-amber-700 bg-amber-100' },
-                INF: { label: 'Infortunio', color: 'text-purple-700 bg-purple-100' },
-                FS: { label: 'Festività Soppressa', color: 'text-blue-700 bg-blue-100' },
-                PNR: { label: 'PNR', color: 'text-slate-700 bg-slate-200' },
-                RIPOSO: { label: 'Riposo', color: 'text-gray-600 bg-gray-100' }
+                MA: { label: 'Malattia (MA)', color: 'text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950' },
+                FERIE: { label: 'Ferie', color: 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950' },
+                INF: { label: 'Infortunio', color: 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950' },
+                FS: { label: 'Festività Soppressa', color: 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950' },
+                PNR: { label: 'PNR', color: 'text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700' },
+                RIPOSO: { label: 'Riposo', color: 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700' }
             };
 
             let haAssenze = false;
@@ -914,8 +969,8 @@
                     haAssenze = true;
                     const info = etichetteAssenze[key];
                     containerAssenze.innerHTML += `
-                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border text-xs">
-                            <span class="font-semibold text-slate-700">${info.label}</span>
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-xs">
+                            <span class="font-semibold">${info.label}</span>
                             <span class="font-bold ${info.color} px-2.5 py-0.5 rounded-full">${assenzeConteggio[key]} gg</span>
                         </div>
                     `;
@@ -954,9 +1009,9 @@
                 });
 
                 let naviHtml = Object.keys(naviAnno).map(n => `
-                    <div class="flex justify-between items-center text-xs border-b py-1 text-slate-600">
+                    <div class="flex justify-between items-center text-xs border-b border-slate-200 dark:border-slate-700 py-1">
                         <span>${n}</span>
-                        <span class="font-bold text-slate-800">${naviAnno[n]} turni</span>
+                        <span class="font-bold">${naviAnno[n]} turni</span>
                     </div>
                 `).join('');
 
@@ -964,9 +1019,9 @@
 
                 container.innerHTML += `
                     <div class="card-custom">
-                        <div class="flex items-center justify-between border-b pb-2 mb-3">
-                            <div class="font-extrabold text-lg text-slate-800">Anno ${anno}</div>
-                            <div class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
+                        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2 mb-3">
+                            <div class="font-extrabold text-lg">Anno ${anno}</div>
+                            <div class="text-sm font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-xl">
                                 Total Turni: <span class="text-base">${totTurniAnno}</span>
                             </div>
                         </div>
@@ -975,11 +1030,11 @@
                                 <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dettaglio Navi</div>
                                 ${naviHtml}
                             </div>
-                            <div class="flex flex-wrap gap-2 pt-2 border-t text-xs font-medium">
-                                <span class="bg-rose-50 text-rose-700 border border-rose-200 px-2 py-1 rounded-lg">Malattia: <strong>${assenzeAnno.MA} gg</strong></span>
-                                <span class="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-lg">Ferie: <strong>${assenzeAnno.FERIE} gg</strong></span>
-                                <span class="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 rounded-lg">Infortunio: <strong>${assenzeAnno.INF} gg</strong></span>
-                                <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-lg">Fest. Sopp.: <strong>${assenzeAnno.FS} gg</strong></span>
+                            <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs font-medium">
+                                <span class="bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 px-2 py-1 rounded-lg">Malattia: <strong>${assenzeAnno.MA} gg</strong></span>
+                                <span class="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-1 rounded-lg">Ferie: <strong>${assenzeAnno.FERIE} gg</strong></span>
+                                <span class="bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-2 py-1 rounded-lg">Infortunio: <strong>${assenzeAnno.INF} gg</strong></span>
+                                <span class="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2 py-1 rounded-lg">Fest. Sopp.: <strong>${assenzeAnno.FS} gg</strong></span>
                             </div>
                         </div>
                     </div>
@@ -1124,7 +1179,8 @@
             const dataToExport = {
                 annoCorrente: annoSelezionato,
                 databaseAnni: databaseAnni,
-                listaNavi: listaNavi
+                listaNavi: listaNavi,
+                darkMode: isDarkMode
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
             const downloadAnchor = document.createElement('a');
@@ -1144,6 +1200,10 @@
                         databaseAnni = importedData.databaseAnni;
                         if (importedData.annoCorrente) annoSelezionato = importedData.annoCorrente;
                         if (importedData.listaNavi) listaNavi = importedData.listaNavi;
+                        if (importedData.darkMode !== undefined) {
+                            isDarkMode = importedData.darkMode;
+                            applyTheme();
+                        }
                         popolaSelectNavi();
                         aggiornaSelectAnni();
                         salvaInLocalStorage();
