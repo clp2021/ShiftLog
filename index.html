@@ -121,19 +121,18 @@
             </div>
         </header>
 
-        <!-- BANNER BACKUP E RIPRISTINO -->
+        <!-- BANNER BACKUP E RIPRISTINO VIA EMAIL -->
         <div id="bannerBackup" class="card-custom mb-4 bg-sky-50 dark:bg-slate-800/80 border-sky-200 dark:border-slate-700 no-print">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-2 text-sky-800 dark:text-sky-200 text-sm">
-                    <i class="fa-solid fa-floppy-disk text-sky-600 dark:text-sky-400"></i>
-                    <span><strong>Backup:</strong> Salva o ripristina i tuoi dati in un file.</span>
+                    <i class="fa-solid fa-envelope text-sky-600 dark:text-sky-400"></i>
+                    <span><strong>Backup Email:</strong> Invia o ripristina i tuoi dati via email.</span>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <button onclick="esportaDatiJSON()" class="px-3 py-1.5 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700">📥 Salva</button>
-                    <button onclick="document.getElementById('fileImport').click()" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-sky-300 dark:border-slate-600 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-semibold hover:bg-sky-100 dark:hover:bg-slate-600">📤 Carica</button>
+                    <button onclick="inviaBackupEmail()" class="px-3 py-1.5 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700">✉️ Invia Backup</button>
+                    <button onclick="ripristinaDaEmailPrompt()" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-sky-300 dark:border-slate-600 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-semibold hover:bg-sky-100 dark:hover:bg-slate-600">📥 Ripristina da Email</button>
                     <button onclick="document.getElementById('bannerBackup').style.display='none'" class="px-3 py-1.5 border border-sky-300 dark:border-slate-600 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-semibold hover:bg-sky-100 dark:hover:bg-slate-600">&times;</button>
                 </div>
-                <input type="file" id="fileImport" accept=".json" style="display: none;" onchange="importaDatiJSON(event)">
             </div>
         </div>
 
@@ -1215,49 +1214,43 @@
 
         function esportaPDF() { window.print(); }
 
-        function esportaDatiJSON() {
+        // GESTIONE BACKUP E RIPRISTINO VIA EMAIL
+        function inviaBackupEmail() {
             const dataToExport = {
                 annoCorrente: annoSelezionato,
                 databaseAnni: databaseAnni,
                 listaNavi: listaNavi,
                 darkMode: isDarkMode
             };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `shiftlog_backup_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            const jsonStr = JSON.stringify(dataToExport, null, 2);
+            const oggetto = encodeURIComponent(`Backup ShiftLog - ${new Date().toISOString().slice(0,10)}`);
+            const corpo = encodeURIComponent("Ecco il codice di backup dei miei turni e rateo ferie di ShiftLog (copia tutto il testo qui sotto per ripristinarlo):\n\n" + jsonStr);
+            
+            window.location.href = `mailto:?subject=${oggetto}&body=${corpo}`;
         }
 
-        function importaDatiJSON(event) {
-            const fileReader = new FileReader();
-            fileReader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (importedData.databaseAnni) {
-                        databaseAnni = importedData.databaseAnni;
-                        if (importedData.annoCorrente) annoSelezionato = importedData.annoCorrente;
-                        if (importedData.listaNavi) listaNavi = importedData.listaNavi;
-                        if (importedData.darkMode !== undefined) isDarkMode = importedData.darkMode;
-                        applyTheme();
-                        popolaSelectNavi();
-                        aggiornaSelectAnni();
-                        salvaInLocalStorage();
-                        event.target.value = '';
-                        alert("Backup ShiftLog ripristinato con successo!");
-                    } else {
-                        event.target.value = '';
-                        alert("File JSON non valido.");
-                    }
-                } catch (err) {
-                    event.target.value = '';
-                    alert("Errore nella lettura del file JSON.");
+        function ripristinaDaEmailPrompt() {
+            const testoIncollato = prompt("Incolla qui tutto il codice di backup che hai ricevuto via email:");
+            if (!testoIncollato) return;
+
+            try {
+                const importedData = JSON.parse(testoIncollato.trim());
+                if (importedData.databaseAnni) {
+                    databaseAnni = importedData.databaseAnni;
+                    if (importedData.annoCorrente) annoSelezionato = importedData.annoCorrente;
+                    if (importedData.listaNavi) listaNavi = importedData.listaNavi;
+                    if (importedData.darkMode !== undefined) isDarkMode = importedData.darkMode;
+                    
+                    applyTheme();
+                    popolaSelectNavi();
+                    aggiornaSelectAnni();
+                    salvaInLocalStorage();
+                    alert("Backup ripristinato con successo!");
+                } else {
+                    alert("Il testo inserito non è un backup valido di ShiftLog.");
                 }
-            };
-            if (event.target.files[0]) {
-                fileReader.readAsText(event.target.files[0]);
+            } catch (err) {
+                alert("Errore: il testo incollato non è in formato JSON valido.");
             }
         }
 
