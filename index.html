@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ShiftLog - Gestione Turni & Rateo Ferie</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
@@ -20,11 +26,20 @@
             --info: #3b82f6;
         }
 
+        .dark {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
         body {
-            background-color: #f1f5f9;
+            background-color: var(--bg-color);
             color: var(--text-main);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             padding-bottom: 80px;
+            transition: background-color 0.2s, color 0.2s;
         }
 
         .card-custom {
@@ -33,6 +48,7 @@
             padding: 16px;
             border: 1px solid var(--border);
             box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            color: var(--text-main);
         }
 
         .tab-btn.active {
@@ -43,13 +59,13 @@
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .rateo-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; min-width: 600px; }
         .rateo-table th, .rateo-table td { border: 1px solid var(--border); padding: 8px 6px; }
-        .rateo-table th { background-color: #f1f5f9; font-weight: 700; color: var(--text-main); font-size: 0.75rem; text-transform: uppercase; }
-        .rateo-table td.month-name { text-align: left; font-weight: 600; padding-left: 10px; text-transform: capitalize; background-color: #fafafa; }
-        .rateo-val { font-weight: 700; background-color: #f8fafc; color: var(--text-main); }
+        .rateo-table th { background-color: var(--card-bg); font-weight: 700; color: var(--text-main); font-size: 0.75rem; text-transform: uppercase; }
+        .rateo-table td.month-name { text-align: left; font-weight: 600; padding-left: 10px; text-transform: capitalize; background-color: var(--card-bg); color: var(--text-main); }
+        .rateo-val { font-weight: 700; background-color: var(--card-bg); color: var(--text-main); }
 
         .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-top: 15px; }
         .summary-table { width: 100%; min-width: unset; }
-        .summary-table td { text-align: left; padding: 8px 12px; font-size: 0.85rem; border: none; }
+        .summary-table td { text-align: left; padding: 8px 12px; font-size: 0.85rem; border: none; color: var(--text-main); }
         .summary-table td:last-child { text-align: right; font-weight: 700; width: 140px; }
         
         .highlight-mid-green { color: var(--primary-dark); font-size: 1.05rem !important; font-weight: 700 !important; }
@@ -63,7 +79,7 @@
         }
     </style>
 </head>
-<body>
+<body onload="caricaDaLocalStorage()">
 
     <div class="max-w-3xl mx-auto p-3 sm:p-5">
 
@@ -73,27 +89,30 @@
                 <div class="w-10 h-10 rounded-xl bg-emerald-600 font-extrabold text-base flex items-center justify-center tracking-tight shadow-md">
                     <span class="text-white">S</span><span class="text-emerald-200">L</span>
                 </div>
-                <h1 class="font-bold text-xl tracking-wider text-slate-800">SHIFTLOG</h1>
+                <h1 class="font-bold text-xl tracking-wider text-slate-800 dark:text-slate-100">SHIFTLOG</h1>
+                <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-lg transition" title="Cambia tema">
+                    <i id="iconaTema" class="fa-solid fa-moon"></i>
+                </button>
             </div>
             <div class="flex items-center gap-2">
-                <button onclick="cambiaAnno(-1)" class="px-3 py-1.5 border rounded-lg hover:bg-slate-100 text-slate-600 font-bold">◀</button>
-                <select id="selAnnoHeader" onchange="selezionaAnnoCorrente()" class="font-bold text-lg border rounded-lg px-2 py-1 bg-white text-center">
+                <button onclick="cambiaAnno(-1)" class="px-3 py-1.5 border dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">◀</button>
+                <select id="selAnnoHeader" onchange="selezionaAnnoCorrente()" class="font-bold text-lg border dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-center">
                 </select>
-                <button onclick="cambiaAnno(1)" class="px-3 py-1.5 border rounded-lg hover:bg-slate-100 text-slate-600 font-bold">▶</button>
+                <button onclick="cambiaAnno(1)" class="px-3 py-1.5 border dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">▶</button>
             </div>
         </header>
 
         <!-- BANNER BACKUP E RIPRISTINO -->
-        <div id="bannerBackup" class="card-custom mb-4 bg-sky-50 border-sky-200 no-print">
+        <div id="bannerBackup" class="card-custom mb-4 bg-sky-50 dark:bg-slate-800/80 border-sky-200 dark:border-slate-700 no-print">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-2 text-sky-800 text-sm">
-                    <i class="fa-solid fa-floppy-disk text-sky-600"></i>
+                <div class="flex items-center gap-2 text-sky-800 dark:text-sky-200 text-sm">
+                    <i class="fa-solid fa-floppy-disk text-sky-600 dark:text-sky-400"></i>
                     <span><strong>Backup:</strong> Salva o ripristina i tuoi dati in un file.</span>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button onclick="esportaDatiJSON()" class="px-3 py-1.5 bg-sky-600 text-white rounded-lg text-xs font-semibold hover:bg-sky-700">📥 Salva</button>
-                    <button onclick="document.getElementById('fileImport').click()" class="px-3 py-1.5 bg-white border border-sky-300 text-sky-800 rounded-lg text-xs font-semibold hover:bg-sky-100">📤 Carica</button>
-                    <button onclick="document.getElementById('bannerBackup').style.display='none'" class="px-3 py-1.5 border border-sky-300 text-sky-800 rounded-lg text-xs font-semibold hover:bg-sky-100">&times;</button>
+                    <button onclick="document.getElementById('fileImport').click()" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-sky-300 dark:border-slate-600 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-semibold hover:bg-sky-100 dark:hover:bg-slate-600">📤 Carica</button>
+                    <button onclick="document.getElementById('bannerBackup').style.display='none'" class="px-3 py-1.5 border border-sky-300 dark:border-slate-600 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-semibold hover:bg-sky-100 dark:hover:bg-slate-600">&times;</button>
                 </div>
                 <input type="file" id="fileImport" accept=".json" style="display: none;" onchange="importaDatiJSON(event)">
             </div>
@@ -104,35 +123,35 @@
             <!-- INTESTAZIONE MESE -->
             <div class="card-custom mb-4">
                 <div class="flex items-center justify-between mb-2">
-                    <button onclick="cambiaMeseCalendario(-1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">◀</button>
-                    <h2 id="txtMeseAnnoCal" class="text-xl font-bold text-slate-800 capitalize">Ottobre 2026</h2>
-                    <button onclick="cambiaMeseCalendario(1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">▶</button>
+                    <button onclick="cambiaMeseCalendario(-1)" class="w-10 h-10 border dark:border-slate-700 rounded-xl flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">◀</button>
+                    <h2 id="txtMeseAnnoCal" class="text-xl font-bold text-slate-800 dark:text-slate-100 capitalize">Ottobre 2026</h2>
+                    <button onclick="cambiaMeseCalendario(1)" class="w-10 h-10 border dark:border-slate-700 rounded-xl flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">▶</button>
                 </div>
 
                 <!-- TURNI TOTALI MESE & STRAORDINARI -->
-                <div class="text-center bg-slate-50 py-2 rounded-xl text-sm font-semibold text-slate-600 flex flex-col sm:flex-row justify-center items-center gap-2">
-                    <span>Turni Totali Mese: <span id="statCalTurni" class="text-emerald-600 font-bold text-base">0</span></span>
-                    <span class="hidden sm:inline text-slate-300">|</span>
-                    <span>Straordinari Mese: <span id="statCalStraordinari" class="text-amber-600 font-bold text-base">00:00</span></span>
+                <div class="text-center bg-slate-50 dark:bg-slate-800/50 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 flex flex-col sm:flex-row justify-center items-center gap-2">
+                    <span>Turni Totali Mese: <span id="statCalTurni" class="text-emerald-600 dark:text-emerald-400 font-bold text-base">0</span></span>
+                    <span class="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
+                    <span>Straordinari Mese: <span id="statCalStraordinari" class="text-amber-600 dark:text-amber-400 font-bold text-base">00:00</span></span>
                 </div>
             </div>
 
             <!-- SELEZIONE RAPIDA INTELLIGENTE -->
             <div class="card-custom mb-4 no-print">
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Assegnazione Rapida Giorno</h3>
+                <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Assegnazione Rapida Giorno</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Seleziona Nave (Turno Ordinario):</label>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Seleziona Nave (Turno Ordinario):</label>
                         <div class="flex gap-2">
-                            <select id="selNaveRapida" onchange="gestisciSelezioneNaveRapida()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                            <select id="selNaveRapida" onchange="gestisciSelezioneNaveRapida()" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium">
                                 <option value="">-- Seleziona Nave --</option>
                             </select>
-                            <button onclick="apriGestioneNavi()" class="px-3 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-700 text-sm font-bold" title="Gestisci Navi">+</button>
+                            <button onclick="apriGestioneNavi()" class="px-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-slate-700 dark:text-slate-200 text-sm font-bold" title="Gestisci Navi">+</button>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Oppure Seleziona Evento / Assenza:</label>
-                        <select id="selTipoGiornoRapido" onchange="gestisciSelezioneEventoRapido()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Oppure Seleziona Evento / Assenza:</label>
+                        <select id="selTipoGiornoRapido" onchange="gestisciSelezioneEventoRapido()" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium">
                             <option value="">-- Seleziona Evento --</option>
                             <option value="FERIE">Ferie (Giornata Intera)</option>
                             <option value="MA">Malattia (Giornata Intera)</option>
@@ -143,21 +162,21 @@
                         </select>
                     </div>
                 </div>
-                <div id="boxOrarioRapido" class="grid grid-cols-2 gap-3 mt-3">
+                <div id="boxOrarioRapido" class="grid grid-cols-2 gap-3 mt-3 hidden">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Inizio:</label>
-                        <input type="time" id="oraInizioRapida" value="08:00" class="w-full border rounded-lg p-2 text-sm">
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Ora Inizio:</label>
+                        <input type="time" id="oraInizioRapida" value="08:00" class="w-full border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-2 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Fine:</label>
-                        <input type="time" id="oraFineRapida" value="16:00" class="w-full border rounded-lg p-2 text-sm">
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Ora Fine:</label>
+                        <input type="time" id="oraFineRapida" value="16:00" class="w-full border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-2 text-sm">
                     </div>
                 </div>
             </div>
 
             <!-- GRIGLIA CALENDARIO -->
             <div class="card-custom">
-                <div class="grid grid-cols-7 text-center font-bold text-xs text-slate-400 mb-2">
+                <div class="grid grid-cols-7 text-center font-bold text-xs text-slate-400 dark:text-slate-500 mb-2">
                     <div>LUN</div><div>MAR</div><div>MER</div><div>GIO</div><div>VEN</div><div>SAB</div><div>DOM</div>
                 </div>
                 <div id="gridCalendario" class="grid grid-cols-7 gap-1 sm:gap-2"></div>
@@ -166,44 +185,42 @@
 
         <!-- ================= VISTA REPORT & STORICO ================= -->
         <div id="viewReport" class="hidden space-y-4">
-            <!-- SELETTORE MODALITÀ REPORT -->
-            <div class="card-custom flex p-1 bg-slate-200/60 rounded-xl">
-                <button onclick="switchModoReport('mensile')" id="btnReportMensile" class="flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 bg-white shadow-sm transition">📅 Report Mensile</button>
-                <button onclick="switchModoReport('annuale')" id="btnReportAnnuale" class="flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-700 transition">📊 Report Annuale</button>
+            <div class="card-custom flex p-1 bg-slate-200/60 dark:bg-slate-800 rounded-xl">
+                <button onclick="switchModoReport('mensile')" id="btnReportMensile" class="flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 shadow-sm transition">📅 Report Mensile</button>
+                <button onclick="switchModoReport('annuale')" id="btnReportAnnuale" class="flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">📊 Report Annuale</button>
             </div>
 
             <!-- REPORT MENSILE -->
             <div id="boxReportMensile" class="space-y-4">
                 <div class="card-custom flex items-center justify-between">
-                    <button onclick="cambiaMeseReport(-1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">◀</button>
+                    <button onclick="cambiaMeseReport(-1)" class="w-10 h-10 border dark:border-slate-700 rounded-xl flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">◀</button>
                     <div class="text-center">
-                        <h2 id="txtMeseAnnoReport" class="text-lg font-bold text-slate-800 capitalize">Ottobre 2026</h2>
-                        <span class="text-xs text-slate-500 font-semibold">Riepilogo turni per Nave e Assenze</span>
+                        <h2 id="txtMeseAnnoReport" class="text-lg font-bold text-slate-800 dark:text-slate-100 capitalize">Ottobre 2026</h2>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">Riepilogo turni per Nave e Assenze</span>
                     </div>
-                    <button onclick="cambiaMeseReport(1)" class="w-10 h-10 border rounded-xl flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">▶</button>
+                    <button onclick="cambiaMeseReport(1)" class="w-10 h-10 border dark:border-slate-700 rounded-xl flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">▶</button>
                 </div>
 
-                <!-- CARD HEADER TOTALE MESE -->
                 <div class="card-custom bg-emerald-600 text-white flex items-center justify-between p-4 shadow-md">
                     <div>
                         <div class="text-xs uppercase font-bold text-emerald-200 tracking-wider">Totale Turni Mese</div>
                         <div id="repNomeMeseAnno" class="text-xl font-extrabold capitalize">Ottobre 2026</div>
+                        <div id="repStraordinarioMeseBadge" class="text-xs font-semibold text-emerald-100 mt-1 hidden">Straordinario: <span id="repValoreStraordinarioMese" class="font-bold">00:00</span></div>
                     </div>
                     <div id="repTotaleTurniMese" class="text-3xl font-black bg-white/20 px-4 py-1.5 rounded-xl border border-white/20">0</div>
                 </div>
 
-                <!-- DETTAGLI MESE (NAVI & ASSENZE) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="card-custom">
-                        <h3 class="font-bold text-slate-800 text-sm border-b pb-2 mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-ship text-emerald-600"></i> Turni per Nave
+                        <h3 class="font-bold text-slate-800 dark:text-slate-100 text-sm border-b dark:border-slate-700 pb-2 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-ship text-emerald-600 dark:text-emerald-400"></i> Turni per Nave
                         </h3>
                         <div id="listaNaviMese" class="space-y-2"></div>
                     </div>
 
                     <div class="card-custom">
-                        <h3 class="font-bold text-slate-800 text-sm border-b pb-2 mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-user-clock text-amber-600"></i> Assenze e Causali
+                        <h3 class="font-bold text-slate-800 dark:text-slate-100 text-sm border-b dark:border-slate-700 pb-2 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-user-clock text-amber-600 dark:text-amber-400"></i> Assenze e Causali
                         </h3>
                         <div id="listaAssenzeMese" class="space-y-2"></div>
                     </div>
@@ -215,11 +232,10 @@
                 <div class="card-custom bg-slate-800 text-white p-4 flex items-center justify-between shadow-md">
                     <div>
                         <div class="text-xs uppercase font-bold text-slate-400 tracking-wider">Consuntivo Storico</div>
-                        <div class="text-xl font-extrabold">Confronto Anni</div>
+                        <div class="text-xl font-extrabold">Report Anno <span id="txtAnnoReportAnnuale">2026</span></div>
                     </div>
                     <i class="fa-solid fa-chart-line text-2xl text-emerald-400"></i>
                 </div>
-
                 <div id="containerAnniReport" class="space-y-3"></div>
             </div>
         </div>
@@ -228,15 +244,15 @@
         <div id="viewRateo" class="hidden">
             <!-- CONFIGURAZIONE INIZIALE -->
             <div class="card-custom mb-4 no-print border-l-4 border-l-emerald-500">
-                <h2 class="font-bold text-slate-800 mb-3 text-sm sm:text-base">⚙️ Configurazione Iniziale (<span id="txtAnnoConfig">Anno</span>)</h2>
+                <h2 class="font-bold text-slate-800 dark:text-slate-100 mb-3 text-sm sm:text-base">⚙️ Configurazione Iniziale (<span id="txtAnnoConfig">Anno</span>)</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Ferie Residue Iniziali:</label>
-                        <input type="number" id="inpFerieIniziali" placeholder="es. 10" step="0.5" value="0" oninput="salvaECalcola()" class="w-full border rounded-lg p-2 text-sm">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Ferie Residue Iniziali:</label>
+                        <input type="number" id="inpFerieIniziali" placeholder="es. 10" step="0.5" value="0" oninput="salvaECalcola()" class="w-full border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-2 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">FS Totali Caricate dall'Azienda:</label>
-                        <input type="number" id="inpFSMaturateTot" placeholder="es. 1, 2..." step="0.5" value="0" oninput="salvaECalcola()" class="w-full border rounded-lg p-2 text-sm">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">FS Totali Caricate dall'Azienda:</label>
+                        <input type="number" id="inpFSMaturateTot" placeholder="es. 1, 2..." step="0.5" value="0" oninput="salvaECalcola()" class="w-full border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-2 text-sm">
                     </div>
                 </div>
             </div>
@@ -244,7 +260,7 @@
             <!-- TABELLA RIEPILOGO MESI -->
             <div class="card-custom mb-4">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">📋 Riepilogo Mese per Mese (<span id="txtAnnoTabella">Anno</span>)</h2>
+                    <h2 class="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base">📋 Riepilogo Mese per Mese (<span id="txtAnnoTabella">Anno</span>)</h2>
                     <button onclick="esportaPDF()" class="no-print px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">📄 Esporta PDF</button>
                 </div>
 
@@ -271,7 +287,7 @@
             <!-- CARD RECAP TOTALI -->
             <div class="summary-container">
                 <div class="card-custom">
-                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">📊 Totali Ferie</h2>
+                    <h2 class="font-bold text-slate-800 dark:text-slate-100 text-sm mb-2 border-b dark:border-slate-700 pb-1">📊 Totali Ferie</h2>
                     <table class="summary-table">
                         <tr><td><strong>Turni Totali Anno</strong></td><td id="totTurniAnni">0</td></tr>
                         <tr><td>Ferie residue iniziali</td><td id="dispResidueIniziali">0 gg</td></tr>
@@ -281,7 +297,7 @@
                 </div>
 
                 <div class="card-custom">
-                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">🗓️ Festività Soppresse (FS)</h2>
+                    <h2 class="font-bold text-slate-800 dark:text-slate-100 text-sm mb-2 border-b dark:border-slate-700 pb-1">🗓️ Festività Soppresse (FS)</h2>
                     <table class="summary-table">
                         <tr><td>FS Caricate (Azienda)</td><td id="totFSMaturateAnno">0 gg</td></tr>
                         <tr><td>FS Utilizzate (Anno)</td><td id="totFSUtilizzate" class="highlight-red">0 gg</td></tr>
@@ -290,7 +306,7 @@
                 </div>
 
                 <div class="card-custom">
-                    <h2 class="font-bold text-slate-800 text-sm mb-2 border-b pb-1">🎯 Proiezione Rateo Ferie</h2>
+                    <h2 class="font-bold text-slate-800 dark:text-slate-100 text-sm mb-2 border-b dark:border-slate-700 pb-1">🎯 Proiezione Rateo Ferie</h2>
                     <table class="summary-table">
                         <tr><td>Ferie Maturate (Reali / Visive)</td><td id="totFerieMaturate">0,000</td></tr>
                         <tr><td>Rateo mancante allo scatto</td><td id="rateoMancante">0,000</td></tr>
@@ -301,41 +317,46 @@
 
             <!-- RESET ANNO CORRENTE -->
             <div class="card-custom mt-4 no-print flex justify-between items-center">
-                <span class="text-xs text-slate-500 font-medium">Gestione Anno Corrente</span>
-                <button onclick="resetDatiCorrenti()" class="px-3 py-2 border border-rose-300 text-rose-600 rounded-lg text-xs font-semibold hover:bg-rose-50">🗑️ Reset Anno Corrente</button>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Gestione Anno Corrente</span>
+                <button onclick="resetDatiCorrenti()" class="px-3 py-2 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/40">🗑️ Reset Anno Corrente</button>
             </div>
         </div>
 
     </div>
 
     <!-- NAVBAR IN BASSO -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around py-2 z-40 no-print shadow-lg">
-        <button onclick="switchTab('calendario')" id="navCal" class="tab-btn active flex-1 flex flex-col items-center py-1 text-slate-500 font-medium text-xs">
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around py-2 z-40 no-print shadow-lg">
+        <button onclick="switchTab('calendario')" id="navCal" class="tab-btn active flex-1 flex flex-col items-center py-1 text-slate-500 dark:text-slate-400 font-medium text-xs">
             <i class="fa-solid fa-calendar-days text-lg mb-0.5"></i>
             <span>Calendario</span>
         </button>
-        <button onclick="switchTab('report')" id="navReport" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 font-medium text-xs">
+        <button onclick="switchTab('report')" id="navReport" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 dark:text-slate-400 font-medium text-xs">
             <i class="fa-solid fa-chart-column text-lg mb-0.5"></i>
             <span>Report</span>
         </button>
-        <button onclick="switchTab('rateo')" id="navRateo" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 font-medium text-xs">
+        <button onclick="switchTab('rateo')" id="navRateo" class="tab-btn flex-1 flex flex-col items-center py-1 text-slate-500 dark:text-slate-400 font-medium text-xs">
             <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
             <span>Rateo & Ferie</span>
         </button>
     </nav>
 
+    <!-- FIRMA SVILUPPATORE -->
+    <footer class="text-center py-3 text-xs text-slate-400 dark:text-slate-500 no-print" style="margin-bottom: 60px;">
+        Sviluppato da <span class="font-semibold text-slate-600 dark:text-slate-300">Ivan_163</span>
+    </footer>
+
     <!-- MODALE GIORNO SELEZIONATO -->
     <div id="modalGiorno" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 id="modalGiornoData" class="font-bold text-slate-800 text-lg">Dettaglio Giorno</h3>
-                <button onclick="chiudiModaleGiorno()" class="text-slate-400 text-xl hover:text-slate-600">&times;</button>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-xl border dark:border-slate-700">
+            <div class="flex justify-between items-center border-b dark:border-slate-700 pb-2">
+                <h3 id="modalGiornoData" class="font-bold text-slate-800 dark:text-slate-100 text-lg">Dettaglio Giorno</h3>
+                <button onclick="chiudiModaleGiorno()" class="text-slate-400 text-xl hover:text-slate-600 dark:hover:text-slate-200">&times;</button>
             </div>
             
             <div class="space-y-3">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo di Evento / Assenza:</label>
-                    <select id="modTipoGiorno" onchange="toggleModaleFields()" class="w-full border rounded-lg p-2 text-sm bg-white font-medium">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tipo di Evento / Assenza:</label>
+                    <select id="modTipoGiorno" onchange="toggleModaleFields()" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium">
                         <option value="TURNO">Turno Ordinario (Usa Nave)</option>
                         <option value="FERIE">Ferie (Giornata Intera)</option>
                         <option value="MA">Malattia (Giornata Intera)</option>
@@ -348,49 +369,69 @@
 
                 <div id="modBoxTurno" class="space-y-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nave Assegnata:</label>
-                        <select id="modNave" class="w-full border rounded-lg p-2 text-sm bg-white font-medium"></select>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Nave Assegnata:</label>
+                        <select id="modNave" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium"></select>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Inizio:</label>
-                            <input type="time" id="modOraInizio" class="w-full border rounded-lg p-2 text-sm">
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Ora Inizio:</label>
+                            <input type="time" id="modOraInizio" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ora Fine:</label>
-                            <input type="time" id="modOraFine" class="w-full border rounded-lg p-2 text-sm">
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Ora Fine:</label>
+                            <input type="time" id="modOraFine" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100">
                         </div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Straordinario (Ore e Minuti):</label>
-                    <input type="time" id="modStraordinario" value="00:00" class="w-full border rounded-lg p-2 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Straordinario:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <select id="modStroOre" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium">
+                                <option value="0">0 ore</option>
+                                <option value="1">1 ora</option>
+                                <option value="2">2 ore</option>
+                                <option value="3">3 ore</option>
+                                <option value="4">4 ore</option>
+                                <option value="5">5 ore</option>
+                                <option value="6">6 ore</option>
+                                <option value="7">7 ore</option>
+                                <option value="8">8 ore</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="modStroMin" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium">
+                                <option value="00">00 min</option>
+                                <option value="30">30 min</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Note / Dettagli:</label>
-                    <input type="text" id="modNote" placeholder="es. Lavori extra" class="w-full border rounded-lg p-2 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Note / Dettagli:</label>
+                    <input type="text" id="modNote" placeholder="es. Lavori extra" class="w-full border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100">
                 </div>
             </div>
 
             <div class="flex gap-2 pt-2">
                 <button onclick="salvaGiornoModale()" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700">Salva</button>
-                <button onclick="eliminaGiornoModale()" class="px-4 border border-rose-300 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-50">Rimuovi</button>
+                <button onclick="eliminaGiornoModale()" class="px-4 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 rounded-lg text-sm font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40">Rimuovi</button>
             </div>
         </div>
     </div>
 
     <!-- MODALE GESTIONE NAVI -->
     <div id="modalNavi" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-bold text-slate-800 text-lg">Gestione Navi</h3>
-                <button onclick="chiudiGestioneNavi()" class="text-slate-400 text-xl hover:text-slate-600">&times;</button>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-xl border dark:border-slate-700">
+            <div class="flex justify-between items-center border-b dark:border-slate-700 pb-2">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-lg">Gestione Navi</h3>
+                <button onclick="chiudiGestioneNavi()" class="text-slate-400 text-xl hover:text-slate-600 dark:hover:text-slate-200">&times;</button>
             </div>
             
             <div class="flex gap-2">
-                <input type="text" id="nuovaNaveNome" placeholder="Nome Nave (es. Nave A)" class="flex-1 border rounded-lg p-2 text-sm">
+                <input type="text" id="nuovaNaveNome" placeholder="Nome Nave (es. Nave A)" class="flex-1 border dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100">
                 <button onclick="aggiungiNave()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700">+</button>
             </div>
 
@@ -411,6 +452,24 @@
         let meseReport = new Date().getMonth();
         let modoReport = 'mensile';
         let giornoSelezionatoDataKey = null;
+        let isDarkMode = false;
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            applyTheme();
+            salvaInLocalStorage();
+        }
+
+        function applyTheme() {
+            const icona = document.getElementById('iconaTema');
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                if (icona) icona.className = "fa-solid fa-sun";
+            } else {
+                document.documentElement.classList.remove('dark');
+                if (icona) icona.className = "fa-solid fa-moon";
+            }
+        }
 
         function getStrutturaAnnoVuota() {
             return {
@@ -427,7 +486,8 @@
             const dataToSave = {
                 annoCorrente: annoSelezionato,
                 databaseAnni: databaseAnni,
-                listaNavi: listaNavi
+                listaNavi: listaNavi,
+                darkMode: isDarkMode
             };
             localStorage.setItem('shiftLogData', JSON.stringify(dataToSave));
         }
@@ -440,10 +500,13 @@
                     if (parsed.databaseAnni) databaseAnni = parsed.databaseAnni;
                     if (parsed.annoCorrente) annoSelezionato = parseInt(parsed.annoCorrente);
                     if (parsed.listaNavi) listaNavi = parsed.listaNavi;
+                    if (parsed.darkMode !== undefined) isDarkMode = parsed.darkMode;
                 } catch (e) {
                     console.error("Errore nel caricamento dei dati", e);
                 }
             }
+
+            applyTheme();
 
             if (!databaseAnni[annoSelezionato]) {
                 databaseAnni[annoSelezionato] = getStrutturaAnnoVuota();
@@ -472,8 +535,8 @@
             listContainer.innerHTML = '';
             listaNavi.forEach((n, idx) => {
                 listContainer.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border text-sm">
-                        <span>${n}</span>
+                    <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-2 rounded-lg border dark:border-slate-600 text-sm">
+                        <span class="dark:text-slate-200">${n}</span>
                         <button onclick="rimuoviNave(${idx})" class="text-rose-500 font-bold hover:text-rose-700">&times;</button>
                     </div>
                 `;
@@ -544,7 +607,6 @@
             document.getElementById('txtAnnoTabella').innerText = annoSelezionato;
             renderCalendario();
             caricaDatiAnnoCorrente();
-            renderReport();
         }
 
         function selezionaAnnoCorrente() {
@@ -556,7 +618,6 @@
             document.getElementById('txtAnnoTabella').innerText = annoSelezionato;
             renderCalendario();
             caricaDatiAnnoCorrente();
-            renderReport();
             salvaInLocalStorage();
         }
 
@@ -620,7 +681,7 @@
             const dettagli = databaseAnni[annoSelezionato].dettagliGiorni;
 
             for (let i = 0; i < offsetInizio; i++) {
-                grid.innerHTML += `<div class="h-20 bg-slate-50/50 rounded-xl border border-dashed border-slate-200"></div>`;
+                grid.innerHTML += `<div class="h-20 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700"></div>`;
             }
 
             for (let g = 1; g <= giorniTot; g++) {
@@ -628,41 +689,41 @@
                 const infoGiorno = dettagli[dataKey];
 
                 let tagHtml = '';
-                let bgClass = 'bg-white hover:bg-slate-50';
+                let bgClass = 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700';
 
                 if (infoGiorno) {
                     if (infoGiorno.tipo === 'TURNO') {
-                        bgClass = 'bg-emerald-50 border-emerald-300';
-                        let extraBadge = infoGiorno.straordinario && infoGiorno.straordinario !== '00:00' ? `<div class="text-[9px] text-amber-600 font-bold">⏱ +${infoGiorno.straordinario}</div>` : '';
+                        bgClass = 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800';
+                        let extraBadge = infoGiorno.straordinario && infoGiorno.straordinario !== '00:00' ? `<div class="text-[9px] text-amber-600 dark:text-amber-400 font-bold">⏱ +${infoGiorno.straordinario}</div>` : '';
                         tagHtml = `
-                            <div class="text-[10px] font-bold text-emerald-700 truncate">${infoGiorno.nave || 'Turno'}</div>
-                            <div class="text-[9px] text-emerald-600">${infoGiorno.oraInizio || ''}-${infoGiorno.oraFine || ''}</div>
+                            <div class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 truncate">${infoGiorno.nave || 'Turno'}</div>
+                            <div class="text-[9px] text-emerald-600 dark:text-emerald-400">${infoGiorno.oraInizio || ''}-${infoGiorno.oraFine || ''}</div>
                             ${extraBadge}
                         `;
                     } else if (infoGiorno.tipo === 'FERIE') {
-                        bgClass = 'bg-amber-50 border-amber-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-amber-700">FERIE</div>`;
+                        bgClass = 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800';
+                        tagHtml = `<div class="text-[10px] font-bold text-amber-700 dark:text-amber-300">FERIE</div>`;
                     } else if (infoGiorno.tipo === 'MA') {
-                        bgClass = 'bg-rose-50 border-rose-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-rose-700">MALATTIA</div>`;
+                        bgClass = 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800';
+                        tagHtml = `<div class="text-[10px] font-bold text-rose-700 dark:text-rose-300">MALATTIA</div>`;
                     } else if (infoGiorno.tipo === 'INF') {
-                        bgClass = 'bg-purple-50 border-purple-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-purple-700">INFORTUNIO</div>`;
+                        bgClass = 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800';
+                        tagHtml = `<div class="text-[10px] font-bold text-purple-700 dark:text-purple-300">INFORTUNIO</div>`;
                     } else if (infoGiorno.tipo === 'FS') {
-                        bgClass = 'bg-blue-50 border-blue-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-blue-700">FEST. SOPP.</div>`;
+                        bgClass = 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800';
+                        tagHtml = `<div class="text-[10px] font-bold text-blue-700 dark:text-blue-300">FEST. SOPP.</div>`;
                     } else if (infoGiorno.tipo === 'PNR') {
-                        bgClass = 'bg-slate-100 border-slate-300';
-                        tagHtml = `<div class="text-[10px] font-bold text-slate-700">PNR</div>`;
+                        bgClass = 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600';
+                        tagHtml = `<div class="text-[10px] font-bold text-slate-700 dark:text-slate-300">PNR</div>`;
                     } else if (infoGiorno.tipo === 'RIPOSO') {
-                        bgClass = 'bg-gray-50 border-gray-200';
-                        tagHtml = `<div class="text-[10px] font-bold text-gray-400">RIPOSO</div>`;
+                        bgClass = 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700';
+                        tagHtml = `<div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">RIPOSO</div>`;
                     }
                 }
 
                 grid.innerHTML += `
                     <div onclick="cliccaGiorno('${dataKey}')" class="h-20 p-1.5 border rounded-xl flex flex-col justify-between cursor-pointer transition ${bgClass}">
-                        <div class="font-bold text-xs text-slate-700">${g}</div>
+                        <div class="font-bold text-xs text-slate-700 dark:text-slate-200">${g}</div>
                         <div class="overflow-hidden">${tagHtml}</div>
                     </div>
                 `;
@@ -706,7 +767,12 @@
             document.getElementById('modNave').value = info.nave || (listaNavi[0] || '');
             document.getElementById('modOraInizio').value = info.oraInizio || '08:00';
             document.getElementById('modOraFine').value = info.oraFine || '16:00';
-            document.getElementById('modStraordinario').value = info.straordinario || '00:00';
+            
+            let strVal = info.straordinario || '00:00';
+            let [oreStr, minStr] = strVal.split(':');
+            document.getElementById('modStroOre').value = parseInt(oreStr) || 0;
+            document.getElementById('modStroMin').value = minStr || '00';
+
             document.getElementById('modNote').value = info.note || '';
 
             toggleModaleFields();
@@ -732,7 +798,11 @@
             const nave = document.getElementById('modNave').value;
             const oraInizio = document.getElementById('modOraInizio').value;
             const oraFine = document.getElementById('modOraFine').value;
-            const straordinario = document.getElementById('modStraordinario').value || '00:00';
+            
+            const oreStr = document.getElementById('modStroOre').value;
+            const minStr = document.getElementById('modStroMin').value;
+            const straordinario = `${String(oreStr).padStart(2, '0')}:${minStr}`;
+
             const note = document.getElementById('modNote').value;
 
             databaseAnni[annoSelezionato].dettagliGiorni[giornoSelezionatoDataKey] = {
@@ -809,185 +879,6 @@
             document.getElementById('statCalStraordinari').innerText = strExtra;
         }
 
-        /* ================= SEZIONE REPORT & STORICO ================= */
-        function switchModoReport(modo) {
-            modoReport = modo;
-            const btnM = document.getElementById('btnReportMensile');
-            const btnA = document.getElementById('btnReportAnnuale');
-            const boxM = document.getElementById('boxReportMensile');
-            const boxA = document.getElementById('boxReportAnnuale');
-
-            if (modo === 'mensile') {
-                btnM.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 bg-white shadow-sm transition';
-                btnA.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-700 transition';
-                boxM.classList.remove('hidden');
-                boxA.classList.add('hidden');
-            } else {
-                btnA.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 bg-white shadow-sm transition';
-                btnM.className = 'flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-700 transition';
-                boxA.classList.remove('hidden');
-                boxM.classList.add('hidden');
-            }
-            renderReport();
-        }
-
-        function cambiaMeseReport(delta) {
-            meseReport += delta;
-            if (meseReport < 0) {
-                meseReport = 11;
-                cambiaAnno(-1);
-            } else if (meseReport > 11) {
-                meseReport = 0;
-                cambiaAnno(1);
-            } else {
-                renderReport();
-            }
-        }
-
-        function renderReport() {
-            if (modoReport === 'mensile') {
-                renderReportMensile();
-            } else {
-                renderReportAnnuale();
-            }
-        }
-
-        function renderReportMensile() {
-            const meseNome = mesiNomi[meseReport];
-            document.getElementById('txtMeseAnnoReport').innerText = `${meseNome} ${annoSelezionato}`;
-            document.getElementById('repNomeMeseAnno').innerText = `${meseNome} ${annoSelezionato}`;
-
-            const dettagli = (databaseAnni[annoSelezionato] && databaseAnni[annoSelezionato].dettagliGiorni) ? databaseAnni[annoSelezionato].dettagliGiorni : {};
-            
-            let totTurniMese = 0;
-            let naviConteggio = {};
-            let assenzeConteggio = { FERIE: 0, MA: 0, INF: 0, FS: 0, PNR: 0, RIPOSO: 0 };
-
-            Object.keys(dettagli).forEach(dateKey => {
-                const parts = dateKey.split('-');
-                if (parseInt(parts[0]) === annoSelezionato && (parseInt(parts[1]) - 1) === meseReport) {
-                    const item = dettagli[dateKey];
-                    if (item.tipo === 'TURNO') {
-                        totTurniMese++;
-                        const n = item.nave || 'Senza Nome';
-                        naviConteggio[n] = (naviConteggio[n] || 0) + 1;
-                    } else if (assenzeConteggio.hasOwnProperty(item.tipo)) {
-                        assenzeConteggio[item.tipo]++;
-                    }
-                }
-            });
-
-            document.getElementById('repTotaleTurniMese').innerText = totTurniMese;
-
-            // Render Navi
-            const containerNavi = document.getElementById('listaNaviMese');
-            containerNavi.innerHTML = '';
-            const naviKeys = Object.keys(naviConteggio);
-            if (naviKeys.length === 0) {
-                containerNavi.innerHTML = `<div class="text-xs text-slate-400 italic py-2">Nessun turno su nave registrato nel mese.</div>`;
-            } else {
-                naviKeys.forEach(n => {
-                    containerNavi.innerHTML += `
-                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border text-xs">
-                            <span class="font-semibold text-slate-700">${n}</span>
-                            <span class="font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">${naviConteggio[n]} turni</span>
-                        </div>
-                    `;
-                });
-            }
-
-            // Render Assenze
-            const containerAssenze = document.getElementById('listaAssenzeMese');
-            containerAssenze.innerHTML = '';
-            const etichetteAssenze = {
-                MA: { label: 'Malattia (MA)', color: 'text-rose-700 bg-rose-100' },
-                FERIE: { label: 'Ferie', color: 'text-amber-700 bg-amber-100' },
-                INF: { label: 'Infortunio', color: 'text-purple-700 bg-purple-100' },
-                FS: { label: 'Festività Soppressa', color: 'text-blue-700 bg-blue-100' },
-                PNR: { label: 'PNR', color: 'text-slate-700 bg-slate-200' },
-                RIPOSO: { label: 'Riposo', color: 'text-gray-600 bg-gray-100' }
-            };
-
-            let haAssenze = false;
-            Object.keys(assenzeConteggio).forEach(key => {
-                if (assenzeConteggio[key] > 0) {
-                    haAssenze = true;
-                    const info = etichetteAssenze[key];
-                    containerAssenze.innerHTML += `
-                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border text-xs">
-                            <span class="font-semibold text-slate-700">${info.label}</span>
-                            <span class="font-bold ${info.color} px-2.5 py-0.5 rounded-full">${assenzeConteggio[key]} gg</span>
-                        </div>
-                    `;
-                }
-            });
-
-            if (!haAssenze) {
-                containerAssenze.innerHTML = `<div class="text-xs text-slate-400 italic py-2">Nessuna assenza registrata nel mese.</div>`;
-            }
-        }
-
-        function renderReportAnnuale() {
-            const container = document.getElementById('containerAnniReport');
-            container.innerHTML = '';
-
-            const anniDisponibili = Object.keys(databaseAnni).map(Number).sort((a, b) => b - a);
-
-            anniDisponibili.forEach(anno => {
-                const dettagli = databaseAnni[anno].dettagliGiorni || {};
-                let totTurniAnno = 0;
-                let naviAnno = {};
-                let assenzeAnno = { MA: 0, FERIE: 0, INF: 0, FS: 0, PNR: 0 };
-
-                Object.keys(dettagli).forEach(dateKey => {
-                    const parts = dateKey.split('-');
-                    if (parseInt(parts[0]) === anno) {
-                        const item = dettagli[dateKey];
-                        if (item.tipo === 'TURNO') {
-                            totTurniAnno++;
-                            const n = item.nave || 'Senza Nome';
-                            naviAnno[n] = (naviAnno[n] || 0) + 1;
-                        } else if (assenzeAnno.hasOwnProperty(item.tipo)) {
-                            assenzeAnno[item.tipo]++;
-                        }
-                    }
-                });
-
-                let naviHtml = Object.keys(naviAnno).map(n => `
-                    <div class="flex justify-between items-center text-xs border-b py-1 text-slate-600">
-                        <span>${n}</span>
-                        <span class="font-bold text-slate-800">${naviAnno[n]} turni</span>
-                    </div>
-                `).join('');
-
-                if (!naviHtml) naviHtml = `<div class="text-xs text-slate-400 italic py-1">Nessun turno registrato per quest'anno.</div>`;
-
-                container.innerHTML += `
-                    <div class="card-custom">
-                        <div class="flex items-center justify-between border-b pb-2 mb-3">
-                            <div class="font-extrabold text-lg text-slate-800">Anno ${anno}</div>
-                            <div class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
-                                Total Turni: <span class="text-base">${totTurniAnno}</span>
-                            </div>
-                        </div>
-                        <div class="space-y-3">
-                            <div>
-                                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dettaglio Navi</div>
-                                ${naviHtml}
-                            </div>
-                            <div class="flex flex-wrap gap-2 pt-2 border-t text-xs font-medium">
-                                <span class="bg-rose-50 text-rose-700 border border-rose-200 px-2 py-1 rounded-lg">Malattia: <strong>${assenzeAnno.MA} gg</strong></span>
-                                <span class="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-lg">Ferie: <strong>${assenzeAnno.FERIE} gg</strong></span>
-                                <span class="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 rounded-lg">Infortunio: <strong>${assenzeAnno.INF} gg</strong></span>
-                                <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-lg">Fest. Sopp.: <strong>${assenzeAnno.FS} gg</strong></span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        /* ================= CALCOLI RATEI & RECAP ================= */
         function calcolaFerieFinaliAnno(anno) {
             const dati = databaseAnni[anno];
             if (!dati) return 0;
@@ -1022,6 +913,172 @@
                 return res > 2.166 ? 2.166 : res;
             }
             return 0;
+        }
+
+        function switchModoReport(modo) {
+            modoReport = modo;
+            if (modo === 'mensile') {
+                document.getElementById('boxReportMensile').classList.remove('hidden');
+                document.getElementById('boxReportAnnuale').classList.add('hidden');
+                document.getElementById('btnReportMensile').className = "flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 shadow-sm transition";
+                document.getElementById('btnReportAnnuale').className = "flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition";
+            } else {
+                document.getElementById('boxReportMensile').classList.add('hidden');
+                document.getElementById('boxReportAnnuale').classList.remove('hidden');
+                document.getElementById('btnReportAnnuale').className = "flex-1 py-2 rounded-lg font-bold text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 shadow-sm transition";
+                document.getElementById('btnReportMensile').className = "flex-1 py-2 rounded-lg font-bold text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition";
+                renderReportAnnuale();
+            }
+        }
+
+        function cambiaMeseReport(delta) {
+            meseReport += delta;
+            if (meseReport > 11) meseReport = 0;
+            else if (meseReport < 0) meseReport = 11;
+            renderReportMensile();
+        }
+
+        function renderReport() {
+            if (modoReport === 'mensile') {
+                renderReportMensile();
+            } else {
+                renderReportAnnuale();
+            }
+        }
+
+        function renderReportMensile() {
+            document.getElementById('txtMeseAnnoReport').innerText = `${mesiNomi[meseReport]} ${annoSelezionato}`;
+            document.getElementById('repNomeMeseAnno').innerText = `${mesiNomi[meseReport]} ${annoSelezionato}`;
+            
+            const annoData = databaseAnni[annoSelezionato];
+            const mStat = annoData.datiMesi[meseReport];
+            const totMese = (mStat.turniEffettivi || 0) + (mStat.ma || 0) + (mStat.inf || 0) + (mStat.festSopp || 0) + (mStat.ferieUsate || 0);
+            document.getElementById('repTotaleTurniMese').innerText = totMese;
+
+            // Mostra o nasconde lo straordinario mensile nel box report
+            const minutiExtra = mStat.minutiStraordinario || 0;
+            const badgeExtra = document.getElementById('repStraordinarioMeseBadge');
+            if (minutiExtra > 0) {
+                document.getElementById('repValoreStraordinarioMese').innerText = converteMinutiStringa(minutiExtra);
+                badgeExtra.classList.remove('hidden');
+            } else {
+                badgeExtra.classList.add('hidden');
+            }
+
+            let naviMeseConteggio = {};
+            const dettagli = annoData.dettagliGiorni || {};
+            const prefissoMese = `${annoSelezionato}-${String(meseReport + 1).padStart(2, '0')}`;
+
+            Object.keys(dettagli).forEach(dateKey => {
+                if (dateKey.startsWith(prefissoMese)) {
+                    const item = dettagli[dateKey];
+                    if (item.tipo === 'TURNO' && item.nave) {
+                        naviMeseConteggio[item.nave] = (naviMeseConteggio[item.nave] || 0) + 1;
+                    }
+                }
+            });
+
+            let listaNaviMeseDiv = document.getElementById('listaNaviMese');
+            listaNaviMeseDiv.innerHTML = '';
+            
+            let naviTrovateNelMese = Object.keys(naviMeseConteggio);
+            if (naviTrovateNelMese.length === 0) {
+                listaNaviMeseDiv.innerHTML = `<div class="text-xs text-slate-400 dark:text-slate-500 italic py-1">Nessun turno registrato su navi in questo mese.</div>`;
+            } else {
+                naviTrovateNelMese.forEach(n => {
+                    const count = naviMeseConteggio[n];
+                    listaNaviMeseDiv.innerHTML += `
+                        <div class="flex justify-between items-center text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-700">
+                            <span class="dark:text-slate-200">${n}</span>
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full text-xs">${count} turni</span>
+                        </div>
+                    `;
+                });
+            }
+
+            let listaAssenzeMeseDiv = document.getElementById('listaAssenzeMese');
+            listaAssenzeMeseDiv.innerHTML = `
+                <div class="flex justify-between items-center text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-700"><span class="dark:text-slate-200">Ferie</span><span class="font-bold text-amber-600 dark:text-amber-400">${mStat.ferieUsate} gg</span></div>
+                <div class="flex justify-between items-center text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-700"><span class="dark:text-slate-200">Malattia (MA)</span><span class="font-bold text-amber-600 dark:text-amber-400">${mStat.ma} gg</span></div>
+                <div class="flex justify-between items-center text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-700"><span class="dark:text-slate-200">Infortunio (INF)</span><span class="font-bold text-amber-600 dark:text-amber-400">${mStat.inf} gg</span></div>
+                <div class="flex justify-between items-center text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-700"><span class="dark:text-slate-200">Festività Soppressa (FS)</span><span class="font-bold text-amber-600 dark:text-amber-400">${mStat.festSopp} gg</span></div>
+                <div class="flex justify-between items-center text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-700"><span class="dark:text-slate-200">Permesso Non Retribuito (PNR)</span><span class="font-bold text-sky-600 dark:text-sky-400">${mStat.pnr || 0} gg</span></div>
+                <div class="flex justify-between items-center text-sm bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-700"><span class="dark:text-slate-200">Riposo Settimanale</span><span class="font-bold text-slate-600 dark:text-slate-300">${mStat.riposo || 0} gg</span></div>
+            `;
+        }
+
+        function renderReportAnnuale() {
+            document.getElementById('txtAnnoReportAnnuale').innerText = annoSelezionato;
+            const container = document.getElementById('containerAnniReport');
+            container.innerHTML = '';
+
+            const annoData = databaseAnni[annoSelezionato];
+            if (!annoData) return;
+
+            const dettagli = annoData.dettagliGiorni || {};
+            
+            let totTurniAnno = 0;
+            let naviAnno = {};
+            let assenzeAnno = { MA: 0, FERIE: 0, INF: 0, FS: 0, PNR: 0, RIPOSO: 0 };
+
+            Object.keys(dettagli).forEach(dateKey => {
+                if (dateKey.startsWith(String(annoSelezionato))) {
+                    const item = dettagli[dateKey];
+                    if (item.tipo === 'TURNO') {
+                        totTurniAnno++;
+                        const n = item.nave || 'Senza Nome';
+                        naviAnno[n] = (naviAnno[n] || 0) + 1;
+                    } else if (assenzeAnno.hasOwnProperty(item.tipo)) {
+                        assenzeAnno[item.tipo]++;
+                    }
+                }
+            });
+
+            if (totTurniAnno === 0 && annoData.datiMesi) {
+                annoData.datiMesi.forEach(m => {
+                    totTurniAnno += (m.turniEffettivi || 0);
+                    assenzeAnno.FERIE += (m.ferieUsate || 0);
+                    assenzeAnno.MA += (m.ma || 0);
+                    assenzeAnno.INF += (m.inf || 0);
+                    assenzeAnno.FS += (m.festSopp || 0);
+                    assenzeAnno.PNR += (m.pnr || 0);
+                    assenzeAnno.RIPOSO += (m.riposo || 0);
+                });
+            }
+
+            let naviHtml = Object.keys(naviAnno).map(n => `
+                <div class="flex justify-between items-center text-xs border-b dark:border-slate-700 py-1 text-slate-600 dark:text-slate-300">
+                    <span>${n}</span>
+                    <span class="font-bold text-slate-800 dark:text-slate-100">${naviAnno[n]} turni</span>
+                </div>
+            `).join('');
+
+            if (!naviHtml) naviHtml = `<div class="text-xs text-slate-400 dark:text-slate-500 italic py-1">Nessun turno su nave registrato per questo anno.</div>`;
+
+            container.innerHTML = `
+                <div class="card-custom">
+                    <div class="flex items-center justify-between border-b dark:border-slate-700 pb-2 mb-3">
+                        <div class="font-extrabold text-lg text-slate-800 dark:text-slate-100">Anno ${annoSelezionato}</div>
+                        <div class="text-sm font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-xl">
+                            Totale Turni: <span class="text-base">${totTurniAnno}</span>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Dettaglio Navi</div>
+                            ${naviHtml}
+                        </div>
+                        <div class="flex flex-wrap gap-2 pt-2 border-t dark:border-slate-700 text-xs font-medium">
+                            <span class="bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 px-2 py-1 rounded-lg">Malattia: <strong>${assenzeAnno.MA} gg</strong></span>
+                            <span class="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-1 rounded-lg">Ferie: <strong>${assenzeAnno.FERIE} gg</strong></span>
+                            <span class="bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-2 py-1 rounded-lg">Infortunio: <strong>${assenzeAnno.INF} gg</strong></span>
+                            <span class="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2 py-1 rounded-lg">Fest. Sopp.: <strong>${assenzeAnno.FS} gg</strong></span>
+                            <span class="bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 px-2 py-1 rounded-lg">PNR: <strong>${assenzeAnno.PNR} gg</strong></span>
+                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-lg">Riposo: <strong>${assenzeAnno.RIPOSO} gg</strong></span>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function caricaDatiAnnoCorrente() {
@@ -1124,7 +1181,8 @@
             const dataToExport = {
                 annoCorrente: annoSelezionato,
                 databaseAnni: databaseAnni,
-                listaNavi: listaNavi
+                listaNavi: listaNavi,
+                darkMode: isDarkMode
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
             const downloadAnchor = document.createElement('a');
@@ -1144,6 +1202,8 @@
                         databaseAnni = importedData.databaseAnni;
                         if (importedData.annoCorrente) annoSelezionato = importedData.annoCorrente;
                         if (importedData.listaNavi) listaNavi = importedData.listaNavi;
+                        if (importedData.darkMode !== undefined) isDarkMode = importedData.darkMode;
+                        applyTheme();
                         popolaSelectNavi();
                         aggiornaSelectAnni();
                         salvaInLocalStorage();
@@ -1165,15 +1225,10 @@
                 databaseAnni[annoSelezionato] = getStrutturaAnnoVuota();
                 renderCalendario();
                 caricaDatiAnnoCorrente();
-                renderReport();
                 salvaInLocalStorage();
                 alert(`Dati dell'anno ${annoSelezionato} resettati con successo!`);
             }
         }
-
-        window.onload = function() {
-            caricaDaLocalStorage();
-        };
     </script>
 </body>
 </html>
