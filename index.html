@@ -34,6 +34,11 @@
             --border: #334155;
         }
 
+        html, body {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
@@ -56,7 +61,11 @@
             border-top: 3px solid #10b981;
         }
 
-        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-responsive { 
+            width: 100%;
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+        }
         .rateo-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; min-width: 600px; }
         .rateo-table th, .rateo-table td { border: 1px solid var(--border); padding: 8px 6px; }
         .rateo-table th { background-color: var(--card-bg); font-weight: 700; color: var(--text-main); font-size: 0.75rem; text-transform: uppercase; }
@@ -68,9 +77,15 @@
         .summary-table td { text-align: left; padding: 8px 12px; font-size: 0.85rem; border: none; color: var(--text-main); }
         .summary-table td:last-child { text-align: right; font-weight: 700; width: 140px; }
         
-        .highlight-mid-green { color: var(--primary-dark); font-size: 1.05rem !important; font-weight: 700 !important; }
-        .highlight-mid-warning { color: var(--warning); font-size: 1.05rem !important; font-weight: 700 !important; }
         .highlight-red { color: var(--danger); font-weight: 700; }
+        .highlight-green { color: var(--primary); font-weight: 700; }
+
+        /* Colori personalizzati richiesti per la diurna */
+        .text-ferie-usate { color: #dc2626 !important; } /* Rosso */
+        .text-ferie-disp { color: #16a34a !important; }  /* Verde */
+        .text-fs-usate { color: #dc2626 !important; }   /* Rosso */
+        .text-fs-disp { color: #16a34a !important; }    /* Verde */
+        .text-turni-mancanti { color: #d97706 !important; } /* Arancione */
 
         @media print {
             .no-print { display: none !important; }
@@ -84,19 +99,23 @@
     <div class="max-w-3xl mx-auto p-3 sm:p-5">
 
         <!-- HEADER APP -->
-        <header class="card-custom mb-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-600 font-extrabold text-base flex items-center justify-center tracking-tight shadow-md">
-                    <span class="text-white">S</span><span class="text-emerald-200">L</span>
+        <header class="card-custom mb-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 font-extrabold text-base flex items-center justify-center tracking-tight shadow-md">
+                        <span class="text-white">S</span><span class="text-emerald-200">L</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-xl tracking-wider text-slate-800 dark:text-slate-100">SHIFTLOG</h1>
+                        <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-lg transition" title="Cambia tema">
+                            <i id="iconaTema" class="fa-solid fa-moon"></i>
+                        </button>
+                    </div>
                 </div>
-                <h1 class="font-bold text-xl tracking-wider text-slate-800 dark:text-slate-100">SHIFTLOG</h1>
-                <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-lg transition" title="Cambia tema">
-                    <i id="iconaTema" class="fa-solid fa-moon"></i>
-                </button>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center gap-2 pt-2 border-t dark:border-slate-700">
                 <button onclick="cambiaAnno(-1)" class="px-3 py-1.5 border dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">◀</button>
-                <select id="selAnnoHeader" onchange="selezionaAnnoCorrente()" class="font-bold text-lg border dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-center">
+                <select id="selAnnoHeader" onchange="selezionaAnnoCorrente()" class="font-bold text-lg border dark:border-slate-700 rounded-lg px-3 py-1 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-center">
                 </select>
                 <button onclick="cambiaAnno(1)" class="px-3 py-1.5 border dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">▶</button>
             </div>
@@ -291,8 +310,8 @@
                     <table class="summary-table">
                         <tr><td><strong>Turni Totali Anno</strong></td><td id="totTurniAnni">0</td></tr>
                         <tr><td>Ferie residue iniziali</td><td id="dispResidueIniziali">0 gg</td></tr>
-                        <tr><td>Ferie utilizzate</td><td id="totFerieUtilizzate" class="highlight-red">0 gg</td></tr>
-                        <tr><td><strong>Ferie disponibili tot</strong></td><td id="ferieDisponibiliTot" class="highlight-mid-green">0 gg</td></tr>
+                        <tr><td>Ferie utilizzate</td><td id="totFerieUtilizzate">0 gg</td></tr>
+                        <tr><td><strong>Ferie disponibili tot</strong></td><td id="ferieDisponibiliTot">0 gg</td></tr>
                     </table>
                 </div>
 
@@ -300,8 +319,8 @@
                     <h2 class="font-bold text-slate-800 dark:text-slate-100 text-sm mb-2 border-b dark:border-slate-700 pb-1">🗓️ Festività Soppresse (FS)</h2>
                     <table class="summary-table">
                         <tr><td>FS Caricate (Azienda)</td><td id="totFSMaturateAnno">0 gg</td></tr>
-                        <tr><td>FS Utilizzate (Anno)</td><td id="totFSUtilizzate" class="highlight-red">0 gg</td></tr>
-                        <tr><td><strong>FS Disponibili Totali</strong></td><td id="fsDisponibiliTot" class="highlight-mid-green">0 gg</td></tr>
+                        <tr><td>FS Utilizzate (Anno)</td><td id="totFSUtilizzate">0 gg</td></tr>
+                        <tr><td><strong>FS Disponibili Totali</strong></td><td id="fsDisponibiliTot">0 gg</td></tr>
                     </table>
                 </div>
 
@@ -310,7 +329,7 @@
                     <table class="summary-table">
                         <tr><td>Ferie Maturate (Reali / Visive)</td><td id="totFerieMaturate">0,000</td></tr>
                         <tr><td>Rateo mancante allo scatto</td><td id="rateoMancante">0,000</td></tr>
-                        <tr><td><strong>Turni mancanti</strong></td><td id="turniMancanti" class="highlight-mid-warning">0</td></tr>
+                        <tr><td><strong>Turni mancanti</strong></td><td id="turniMancanti">0</td></tr>
                     </table>
                 </div>
             </div>
@@ -955,7 +974,6 @@
             const totMese = (mStat.turniEffettivi || 0) + (mStat.ma || 0) + (mStat.inf || 0) + (mStat.festSopp || 0) + (mStat.ferieUsate || 0);
             document.getElementById('repTotaleTurniMese').innerText = totMese;
 
-            // Mostra o nasconde lo straordinario mensile nel box report
             const minutiExtra = mStat.minutiStraordinario || 0;
             const badgeExtra = document.getElementById('repStraordinarioMeseBadge');
             if (minutiExtra > 0) {
@@ -1163,16 +1181,36 @@
 
             document.getElementById('totTurniAnni').innerText = totTurni;
             document.getElementById('dispResidueIniziali').innerText = ferieIniziali + ' gg';
-            document.getElementById('totFerieUtilizzate').innerText = totFerieUsate + ' gg';
-            document.getElementById('ferieDisponibiliTot').innerText = `${ferieDispVisive} gg (${ferieDisponibiliReali.toFixed(3).replace('.', ',')})`;
+
+            // Ferie Utilizzate -> Rosso
+            const elFerieUsate = document.getElementById('totFerieUtilizzate');
+            elFerieUsate.innerText = totFerieUsate + ' gg';
+            elFerieUsate.className = 'text-ferie-usate font-bold';
+
+            // Ferie Disponibili Totali -> Verde
+            const elFerieDisp = document.getElementById('ferieDisponibiliTot');
+            elFerieDisp.innerText = `${ferieDispVisive} gg (${ferieDisponibiliReali.toFixed(3).replace('.', ',')})`;
+            elFerieDisp.className = 'text-ferie-disp font-bold';
             
             document.getElementById('totFSMaturateAnno').innerText = fsMaturateTot + ' gg';
-            document.getElementById('totFSUtilizzate').innerText = totFSUtilizzate + ' gg';
-            document.getElementById('fsDisponibiliTot').innerText = fsDisponibiliTotali + ' gg';
+            
+            // FS Utilizzate Anno -> Rosso
+            const elFSUsate = document.getElementById('totFSUtilizzate');
+            elFSUsate.innerText = totFSUtilizzate + ' gg';
+            elFSUsate.className = 'text-fs-usate font-bold';
+
+            // FS Disponibili Totali -> Verde
+            const elFSDisp = document.getElementById('fsDisponibiliTot');
+            elFSDisp.innerText = fsDisponibiliTotali + ' gg';
+            elFSDisp.className = 'text-fs-disp font-bold';
 
             document.getElementById('totFerieMaturate').innerText = `${totRateoMaturato.toFixed(3).replace('.', ',')} (${rateoVisivo} gg)`;
             document.getElementById('rateoMancante').innerText = ferieMancanti.toFixed(3).replace('.', ',');
-            document.getElementById('turniMancanti').innerText = turniMancanti > 0 ? turniMancanti : 0;
+            
+            // Turni Mancanti -> Arancione
+            const elTurniMancanti = document.getElementById('turniMancanti');
+            elTurniMancanti.innerText = turniMancanti > 0 ? turniMancanti : 0;
+            elTurniMancanti.className = 'text-turni-mancanti font-bold';
         }
 
         function esportaPDF() { window.print(); }
@@ -1207,11 +1245,14 @@
                         popolaSelectNavi();
                         aggiornaSelectAnni();
                         salvaInLocalStorage();
+                        event.target.value = '';
                         alert("Backup ShiftLog ripristinato con successo!");
                     } else {
+                        event.target.value = '';
                         alert("File JSON non valido.");
                     }
                 } catch (err) {
+                    event.target.value = '';
                     alert("Errore nella lettura del file JSON.");
                 }
             };
